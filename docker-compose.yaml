@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgresldt
+    ports: 
+      - '6500:5432'
+    volumes: 
+      - posgresDB:/var/lib/postgresql
+    env_file:
+      - ./.env
+  pgAdmin:
+    image: dpage/pgadmin4
+    container_name: pgAdminLDT
+    env_file:
+      - ./.env
+    ports:
+      - '5050:80'
+volumes:
+  posgresDB:
