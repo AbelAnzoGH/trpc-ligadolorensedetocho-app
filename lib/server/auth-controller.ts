@@ -72,9 +72,12 @@ export const loginHandler = async({
         const cookieOptions = {
             httpOnly: true,
             path: '/',
-            secure: process.env.NODE_ENV === 'development', // Use secure cookies in production
+            sameSite: 'lax' as const,
+            secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
             maxAge: 60 * 60, // 1 hour in seconds
         };
+
+        (await cookies()).set('token', token, cookieOptions);
 
         return{
             status: 'success',
@@ -88,8 +91,12 @@ export const loginHandler = async({
 
 export const logoutHandler = async() => {
     try {
-        (await cookies()).set('token','', {
-            maxAge: -1, // Expire the cookie immediately
+        (await cookies()).set('token', '', {
+            httpOnly: true,
+            path: '/',
+            sameSite: 'lax' as const,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 0, // Expire the cookie immediately
         });
         return {
             status: 'success',

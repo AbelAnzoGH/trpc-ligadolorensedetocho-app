@@ -9,8 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@tanstack/eslint-plugin-query": "^5.101.4",
+    "@tanstack/react-query-devtools": "^5.101.4",
+    "@trpc/client": "^11.18.0",
+    "@trpc/react-query": "^11.18.0",
     "@trpc/server": "^11.18.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
@@ -22,7 +27,10 @@
     "prisma": "^7.9.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-hook-form": "^7.85.0",
+    "react-hot-toast": "^2.6.0",
     "superjson": "^2.2.6",
+    "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

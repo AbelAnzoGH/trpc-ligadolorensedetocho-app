@@ -35,3 +35,110 @@ enum RoleEnumType {
   user
   admin
 }
+
+model Team {
+  id        String @id @default(uuid())
+  name      String @unique @db.VarChar(255)
+
+  category  TeamCategoryEnumType
+
+  // Logo del equipo. Ambos campos son opcionales: un equipo puede existir
+  // sin logo. Se guardan DOS cosas y no una:
+  //   logoUrl → la dirección para mostrarlo en un <img> ("/uploads/logos/x.png")
+  //   logoKey → el identificador interno que usa el almacenamiento para
+  //             poder BORRAR el archivo después ("logos/x.png")
+  // Hoy se parecen porque el almacenamiento es local; cuando pase a S3 la url
+  // será "https://cdn.../logos/x.png" y la key seguirá siendo "logos/x.png".
+  logoUrl   String?
+  logoKey   String?
+
+  memberships TeamMembership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map(name: "teams")
+}
+
+enum TeamCategoryEnumType {
+  femenil
+  varonil
+  mixto
+}
+
+// La PERSONA. Lo que no cambia según el equipo en el que juegue.
+model Player {
+  id        String @id @default(uuid())
+  name      String @db.VarChar(255)
+  lastName  String @db.VarChar(255)
+
+  age       Int
+  height    Int    // en centímetros
+
+  memberships TeamMembership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map(name: "players")
+}
+
+// La PARTICIPACIÓN de una persona en UN equipo.
+// Si Juan juega en el varonil y en el mixto, hay un Player y dos TeamMembership:
+// mismo nombre y edad, pero jersey, posiciones y estadísticas independientes.
+model TeamMembership {
+  id       String @id @default(uuid())
+
+  playerId String
+  teamId   String
+
+  // Borrar a la persona borra sus membresías (ya no juega en ningún lado).
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  // Borrar un equipo NO se permite si todavía tiene jugadores: el controlador
+  // lanza CONFLICT antes de llegar aquí, para dar un mensaje entendible.
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Restrict)
+
+  jerseyNumber Int
+  positions    PlayerPositionEnumType[]
+
+  // Foto del jugador CON ESTE UNIFORME. Va aquí y no en Player por la misma
+  // razón que las estadísticas: si Juan juega en el varonil y en el mixto,
+  // son dos fotos distintas de la misma persona.
+  // Mismo par de columnas que el logo del equipo:
+  //   photoUrl → para el <img src="...">
+  //   photoKey → para poder borrar el archivo después
+  photoUrl     String?
+  photoKey     String?
+
+  // Estadísticas: son de esta membresía, no de la persona.
+  touchdowns      Int @default(0)
+  interceptions   Int @default(0)
+  touchdownPasses Int @default(0)
+  safeties        Int @default(0)
+  gamesPlayed     Int @default(0)
+
+  availableForPlayoffs Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Una persona no puede estar dos veces en el mismo equipo...
+  @@unique([playerId, teamId])
+  // ...y dentro de un equipo, dos jugadores no pueden traer el mismo número.
+  @@unique([teamId, jerseyNumber])
+
+  @@map(name: "team_memberships")
+}
+
+enum PlayerPositionEnumType {
+  QB // Quarterback
+  C  // Centro
+  WR // Receptor
+  RB // Corredor
+  FL // Flanker
+  RU // Rusher
+  LB // Linebacker
+  CB // Esquinero
+  S  // Safety
+  DB // Defensivo
+}

@@ -41,3 +41,15 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# imágenes subidas en desarrollo (el almacenamiento local)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+#documentos
+/docs
+
+#skills que se bajan al instalar dependencias
+/.windsurf
+/.agents
+/.claude

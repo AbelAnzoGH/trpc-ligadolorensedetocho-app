@@ -4,7 +4,7 @@ import { protectedProcedure, publicProcedure, t }  from '@/utils/trpc-server';
 import { loginHandler, registerHandler, logoutHandler } from '@/lib/server/auth-controller';
 
 const authRouter = t.router({
-    registeUser: publicProcedure
+    registerUser: publicProcedure
         .input(createUserSchema)
         .mutation(({ input }: {input: CreateUserInput}) => registerHandler({ input })),
 
