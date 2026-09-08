@@ -12,10 +12,21 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 export const TrpcProvider: React.FC<{ children: React.ReactNode }> = ({
     children
 }) => {
-    const url = process.env.NEXT_PUBLIC_VERCEL_URL
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-    : 'http://localhost:3000/api/trpc/';
+    // const url = process.env.NEXT_PUBLIC_VERCEL_URL
+    // ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+    // : 'http://localhost:3000/api/trpc/';
 
+    const getBaseURL = () => {
+        //En el NAVEGADOR: ruta relativa. Siempr el mismo origen del que se cargo la página Cero Cors, cero variables para configurar
+        if (typeof window !== 'undefined') return '';
+        
+        //El SERVIDOR no existe "el origen actual"_ fetch exige URL absoluta.
+        if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+
+        return 'http://localhost:3000';
+    };
+
+    const url = `${getBaseURL()}/api/trpc/`;
 
     const [trpcClient] = useState(() =>
         trpc.createClient({
