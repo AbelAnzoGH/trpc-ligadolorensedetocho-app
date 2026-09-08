@@ -1,3 +1,4 @@
+import { optimizarImagen } from '@/lib/server/optimizar-imagen';
 import { NextResponse } from 'next/server';
 import { createContext } from '@/utils/trpc-context';
 import {
@@ -83,11 +84,16 @@ export async function POST(request: Request) {
         const carpetaPedida = formData.get('carpeta');
         const carpeta = esCarpetaValida(carpetaPedida) ? carpetaPedida : CARPETA_LOGOS;
 
-        // 6) Guardar. Este es el único paso que cambiará cuando el
-        //    almacenamiento deje de ser local.
-        const guardado = await almacenamiento.guardar(archivo, carpeta);
+        // 6) Comprimir y redimensionar antes de guardar. Un logo de 2 MB que
+        //    sale del celular termina pesando ~60 KB, y es la medida que más
+        //    rinde: menos ancho de banda, carga más rápida y menos consumo del
+        //    plan gratis del bucket.
+        const optimizada = await optimizarImagen(archivo);
 
-        // 7) Devolver la url y la key para que el formulario las mande a tRPC.
+        // 7) Guardar. Único paso que cambia según el entorno.
+        const guardado = await almacenamiento.guardar(optimizada, carpeta);
+
+        // 8) Devolver la url y la key para que el formulario las mande a tRPC.
         return NextResponse.json(guardado, { status: 201 });
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Error al subir la imagen';

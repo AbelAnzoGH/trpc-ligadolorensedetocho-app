@@ -53,3 +53,6 @@ next-env.d.ts
 /.windsurf
 /.agents
 /.claude
+
+# libreta personal de pendientes
+tareas.md

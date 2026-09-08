@@ -36,12 +36,6 @@ export default function AuthMenu() {
                 </Link>
             </li>
 
-            <li>
-                <Link href='/ProPage' className="text-white font-semibold hover:text-pink-500">
-                    Pro Page
-                </Link>
-            </li>
-
             <li className="cursor-pointer text-white font-semibold hover:text-pink-500" onClick={() => logoutFn()}>
                 Logout
             </li>

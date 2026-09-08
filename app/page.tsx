@@ -31,7 +31,7 @@ export default async function Home() {
             <h1 className="text-4xl font-bold text-white sm:text-5xl lg:text-6xl">
               Bienvenido a la{' '}
               <span className="bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text text-transparent">
-                Ligadolorense de Tocho
+                LIGADOLORENSEDETOCHO
               </span>
             </h1>
 

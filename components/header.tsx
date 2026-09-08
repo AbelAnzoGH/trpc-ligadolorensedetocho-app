@@ -14,7 +14,7 @@ const Header = async () => {
                         <Link href='/' className='flex items-center gap-2'>
                             <LogoLiga className='h-8 w-auto shrink-0' title='' />
                             <span className='bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text text-transparent text-lg sm:text-xl font-bold leading-tight'>
-                                LIGADOLORENSE DE TOCHO
+                                LIGADOLORENSEDETOCHO
                             </span>
                         </Link>
                     </div>

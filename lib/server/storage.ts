@@ -1,3 +1,4 @@
+import {put, del} from '@vercel/blob';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
@@ -86,13 +87,50 @@ const almacenamientoLocal: Almacenamiento = {
     },
 };
 
+// ---------------------------------------------------------------------------
+// Implementación REMOTA: escribe en Vercel Blob
+// ---------------------------------------------------------------------------
+
+const almacenamientoRemoto: Almacenamiento = {
+    async guardar(archivo, carpeta) {
+        const extension = TIPOS_PERMITIDOS[archivo.type];
+        if (!extension) {
+            throw new Error(`Tipo de archivo no permitido: ${archivo.type}`);
+        }
+
+        const nombre = `${randomUUID()}.${extension}`;
+
+        const blob = await put(`${carpeta}/${nombre}`, archivo, {
+            access: 'public',
+            contentType: archivo.type,
+            // Nosotros ya ponemos un UUID; no queremos que Vercel le
+            // agregue otro sufijo aleatorio encima.
+            addRandomSuffix: false,
+        });
+
+        // Aquí la `key` es la URL completa, no una ruta relativa como en
+        // el almacenamiento local: es lo que `del()` necesita recibir.
+        // Que cada implementación defina su propia `key` es justamente
+        // para lo que sirve la interfaz — nadie más la interpreta.
+        return { url: blob.url, key: blob.url };
+    },
+
+    async borrar(key) {
+        await del(key);
+    },
+};
+//export const almacenamiento: Almacenamiento = almacenamientoLocal;
+
 /**
  * El almacenamiento que usa la aplicación.
  *
- * PARA MIGRAR A UN SERVIDOR REMOTO: escribe un `almacenamientoS3` que
- * cumpla la misma interfaz y cambia solo esta línea. Nada más se toca.
+ * La decisión la toma el entorno, no el código: si existe el token del
+ * bucket (lo inyecta Vercel), se escribe allá. En tu máquina no existe,
+ * así que sigues escribiendo en public/uploads como hasta ahora.
  */
-export const almacenamiento: Almacenamiento = almacenamientoLocal;
+export const almacenamiento: Almacenamiento = process.env.BLOB_READ_WRITE_TOKEN
+    ? almacenamientoRemoto
+    : almacenamientoLocal;
 
 /**
  * Las carpetas donde se puede subir algo.
