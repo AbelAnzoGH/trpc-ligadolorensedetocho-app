@@ -16,5 +16,17 @@ const isAuthed = t.middleware(({next, ctx}) => {
     return next();
 })
 
+const isAdmin = t.middleware(({next, ctx}) => {
+    if (ctx.user?.role !== 'admin') {
+        throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'No tienes permisos de administrador para acceder a este recurso',
+        });
+    }
+
+    return next();
+});
+
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(isAuthed);
+export const adminProcedure = protectedProcedure.use(isAdmin);

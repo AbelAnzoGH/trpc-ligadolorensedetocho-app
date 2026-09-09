@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Header from '@/components/header';
-import { getAuthUser } from '@/utils/get-auth-user';
+import { getAdminUser } from '@/utils/get-auth-user';
 import EquiposPanel from './equipos-panel';
 
 // Página PROTEGIDA. getAuthUser() sin argumentos usa shouldRedirect = true:
@@ -9,7 +9,7 @@ import EquiposPanel from './equipos-panel';
 // pero aplicada a la navegación, para que el usuario no vea una pantalla
 // que de todas formas le va a fallar en cada botón.
 export default async function ManejarEquiposPage() {
-    await getAuthUser();
+    await getAdminUser();
 
     return (
         <>

@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import Header from '@/components/header';
-import { getAuthUser } from '@/utils/get-auth-user';
+import { getAdminUser } from '@/utils/get-auth-user';
 import JugadoresPanel from './jugadores-panel';
 
 // Página PROTEGIDA: getAuthUser() redirige a /login si no hay sesión.
 export default async function ManejarJugadoresPage() {
-    await getAuthUser();
+    await getAdminUser();
 
     return (
         <>

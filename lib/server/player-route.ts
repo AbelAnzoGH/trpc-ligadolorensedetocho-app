@@ -9,7 +9,7 @@ import {
     listMembershipsSchema,
 } from '@/lib/player-schema';
 
-import { protectedProcedure, publicProcedure, t } from '@/utils/trpc-server';
+import { adminProcedure, publicProcedure, t } from '@/utils/trpc-server';
 import {
     listPlayersHandler,
     getPlayerHandler,
@@ -39,28 +39,28 @@ const playerRouter = t.router({
         .query(({ input }) => listMembershipsHandler({ input })),
 
     // --- Escritura sobre la persona ---
-    createPlayer: protectedProcedure
+    createPlayer: adminProcedure
         .input(createPlayerSchema)
         .mutation(({ input }) => createPlayerHandler({ input })),
 
-    updatePlayer: protectedProcedure
+    updatePlayer: adminProcedure
         .input(updatePlayerSchema)
         .mutation(({ input }) => updatePlayerHandler({ input })),
 
-    deletePlayer: protectedProcedure
+    deletePlayer: adminProcedure
         .input(playerIdSchema)
         .mutation(({ input }) => deletePlayerHandler({ input })),
 
     // --- Escritura sobre la membresía (jugador dentro de un equipo) ---
-    addPlayerToTeam: protectedProcedure
+    addPlayerToTeam: adminProcedure
         .input(createMembershipSchema)
         .mutation(({ input }) => addPlayerToTeamHandler({ input })),
 
-    updateMembership: protectedProcedure
+    updateMembership: adminProcedure
         .input(updateMembershipSchema)
         .mutation(({ input }) => updateMembershipHandler({ input })),
 
-    removeMembership: protectedProcedure
+    removeMembership: adminProcedure
         .input(membershipIdSchema)
         .mutation(({ input }) => removeMembershipHandler({ input })),
 });

@@ -5,7 +5,7 @@ import {
     listTeamsSchema,
 } from '@/lib/team-schema';
 
-import { protectedProcedure, publicProcedure, t } from '@/utils/trpc-server';
+import { adminProcedure, publicProcedure, t } from '@/utils/trpc-server';
 import {
     listTeamsHandler,
     getTeamHandler,
@@ -24,16 +24,16 @@ const teamRouter = t.router({
         .input(teamIdSchema)
         .query(({ input }) => getTeamHandler({ input })),
 
-    // --- Escritura: protegida (hay que iniciar sesión) ---
-    createTeam: protectedProcedure
+    // --- Escritura: solo administradores ---
+    createTeam: adminProcedure
         .input(createTeamSchema)
         .mutation(({ input }) => createTeamHandler({ input })),
 
-    updateTeam: protectedProcedure
+    updateTeam: adminProcedure
         .input(updateTeamSchema)
         .mutation(({ input }) => updateTeamHandler({ input })),
 
-    deleteTeam: protectedProcedure
+    deleteTeam: adminProcedure
         .input(teamIdSchema)
         .mutation(({ input }) => deleteTeamHandler({ input })),
 });

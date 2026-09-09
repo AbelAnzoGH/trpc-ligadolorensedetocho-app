@@ -5,6 +5,7 @@ import { getUserHandler } from "@/lib/server/user-controller";
 import { createContext } from "@/utils/trpc-context";
 import { protectedProcedure, t } from "@/utils/trpc-server";
 
+
 const statusCheckRouter = t.router({
     statuschecker: t.procedure.query(() => {
         return {

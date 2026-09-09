@@ -34,7 +34,7 @@ const Header = async () => {
                                 Jugadores
                             </Link>
                         </li>
-                        {!user && (
+                        {/* {!user && (
                             <>
                                 <li>
                                     <Link href='/register' className='text-white hover:text-pink-500 font-semibold'>
@@ -47,8 +47,8 @@ const Header = async () => {
                                     </Link>
                                 </li>
                             </>
-                        )}
-                        {user && <AuthMenu />}
+                        )} */}
+                        {user && <AuthMenu role={user.role} />}
                     </ul>
                 </div>
             </div>
