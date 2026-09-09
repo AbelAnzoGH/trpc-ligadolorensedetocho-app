@@ -8,8 +8,11 @@ import Footer from '@/components/footer';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Ligadolorense de Tocho",
-  description: "Equipos, jugadores y estadísticas de la Ligadolorense de Tocho.",
+  title: "LigaDolorensedeTocho",
+  description: "Equipos, jugadores y estadísticas de la LigaDolorensedeTocho.",
+  icons: {
+    icon: "/logo-liga.svg",
+  },
 };
 
 export default function RootLayout({

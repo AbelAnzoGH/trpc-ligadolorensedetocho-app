@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { trpcQuery } from '@/utils/trpc-fetch';
 import { teamCategories, type TeamCategory } from '@/lib/team-schema';
 import { etiquetaCategoria, inputClass, type Team, type ListTeamsResponse } from '@/lib/team-ui';
+import EquipoRosterModal from './equipo-roster-modal';
 
 /**
  * Tabla pública de equipos: SOLO lectura.
@@ -17,6 +18,11 @@ export default function EquiposTabla() {
 
     // Filtro del listado ('' = todas las categorías)
     const [filtro, setFiltro] = useState<TeamCategory | ''>('');
+
+    // Equipo cuyo plantel se está viendo. null = ningún modal abierto.
+    // Se guarda el equipo COMPLETO y no solo su id, para que el modal pueda
+    // pintar el nombre y la categoría en el encabezado sin volver a pedirlos.
+    const [equipoAbierto, setEquipoAbierto] = useState<Team | null>(null);
 
     const cargarEquipos = useCallback(async () => {
         setCargando(true);
@@ -65,6 +71,12 @@ export default function EquiposTabla() {
             </div>
 
             {/* ---------- Tabla ---------- */}
+            {!cargando && !error && equipos.length > 0 && (
+                <p className="text-sm text-gray-500">
+                    Haz clic en un equipo para ver su plantel.
+                </p>
+            )}
+
             {cargando && <p className="text-gray-300">Cargando equipos...</p>}
             {error && <p className="text-red-400">Error: {error}</p>}
 
@@ -86,7 +98,27 @@ export default function EquiposTabla() {
                         </thead>
                         <tbody className="divide-y divide-gray-800">
                             {equipos.map((equipo) => (
-                                <tr key={equipo.id} className="bg-gray-900/40">
+                                <tr
+                                    key={equipo.id}
+                                    // Una fila de tabla no puede ser un <button>
+                                    // (rompería el HTML), así que se le da el
+                                    // papel de botón a mano: rol, foco con
+                                    // Tab y respuesta a Enter / Espacio. Sin
+                                    // esto la función solo existiría para quien
+                                    // usa ratón.
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Ver jugadores de ${equipo.name}`}
+                                    onClick={() => setEquipoAbierto(equipo)}
+                                    onKeyDown={(evento) => {
+                                        if (evento.key === 'Enter' || evento.key === ' ') {
+                                            // Espacio, sin esto, haría scroll.
+                                            evento.preventDefault();
+                                            setEquipoAbierto(equipo);
+                                        }
+                                    }}
+                                    className="cursor-pointer bg-gray-900/40 transition hover:bg-gray-800/60 focus:outline-none focus-visible:bg-gray-800/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pink-500"
+                                >
                                     <td className="py-3 pl-4 pr-0">
                                         <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-950/60">
                                             {equipo.logoUrl ? (
@@ -115,6 +147,15 @@ export default function EquiposTabla() {
                     </table>
                 </div>
             )}
+
+            {/* ---------- Ventana emergente con el plantel ---------- */}
+            {/* Se monta siempre; es el propio modal el que decide no pintar
+                nada mientras `equipo` sea null. Así el estado de carga se
+                reinicia solo cada vez que se abre un equipo distinto. */}
+            <EquipoRosterModal
+                equipo={equipoAbierto}
+                onCerrar={() => setEquipoAbierto(null)}
+            />
         </div>
     );
 }
