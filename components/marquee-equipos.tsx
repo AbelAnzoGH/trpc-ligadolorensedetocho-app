@@ -55,9 +55,6 @@ export default function MarqueeEquipos({ equipos = [] }: { equipos?: LogoEquipo[
                                     // Sin logo propio todavía: se usa el de la liga.
                                     <LogoLiga className="h-10 w-auto opacity-70" title="" />
                                 )}
-                                <span className="text-xs font-semibold text-gray-400">
-                                    {equipo.nombre}
-                                </span>
                             </>
                         ) : (
                             <div className="h-14 w-14 rounded-full border border-dashed border-gray-700" />
