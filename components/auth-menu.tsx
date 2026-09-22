@@ -38,6 +38,12 @@ export default function AuthMenu({ role }: { role: RoleEnumType | null }) {
                             Manejar jugadores
                         </Link>
                     </li>
+
+                    <li>
+                        <Link href='/manejar-temporadas' className="text-white font-semibold hover:text-pink-500">
+                            Manejar temporadas
+                        </Link>
+                    </li>
                 </>
             )}
 

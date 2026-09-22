@@ -13,8 +13,8 @@ export default async function JugadoresPage() {
                         Jugadores
                     </h1>
                     <p className="mb-8 text-center text-gray-400">
-                        Un registro por jugador y equipo: quien juega en dos categorías
-                        aparece una vez por cada una, con sus estadísticas propias.
+                        Un registro por jugador, equipo y temporada: quien juega en dos
+                        categorías aparece una vez por cada una, con sus estadísticas propias.
                     </p>
                     <JugadoresTabla />
                 </div>

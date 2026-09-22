@@ -40,7 +40,8 @@ model Team {
   id        String @id @default(uuid())
   name      String @unique @db.VarChar(255)
 
-  category  TeamCategoryEnumType
+  // La categoría YA NO vive aquí: se mudó a TeamSeason, porque un equipo
+  // puede jugar varonil en una temporada y mixto en otra (o ambas a la vez).
 
   // Logo del equipo. Ambos campos son opcionales: un equipo puede existir
   // sin logo. Se guardan DOS cosas y no una:
@@ -52,7 +53,8 @@ model Team {
   logoUrl   String?
   logoKey   String?
 
-  memberships TeamMembership[]
+  // Sus inscripciones: una fila por temporada (y categoría) en la que juega.
+  teamSeasons TeamSeason[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -64,6 +66,102 @@ enum TeamCategoryEnumType {
   femenil
   varonil
   mixto
+}
+
+// La LIGA: LDT, LDT SHADOWS, LDT INTERPREPAS. Permanente, como Team y Player.
+// Cada liga lleva su propia numeración de temporadas.
+model League {
+  id   String @id @default(uuid())
+  name String @unique @db.VarChar(255) // "LDT SHADOWS"
+  slug String @unique @db.VarChar(60)  // "shadows" → /ligas/shadows
+
+  seasons Season[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map(name: "leagues")
+}
+
+// Una TEMPORADA de una liga. "LDT VII" = liga LDT + number 7.
+// El nombre bonito se calcula (liga + número romano), no se guarda.
+model Season {
+  id String @id @default(uuid())
+
+  leagueId String
+  // Restrict: no se puede borrar una liga que ya tiene temporadas.
+  league   League @relation(fields: [leagueId], references: [id], onDelete: Restrict)
+
+  number Int // 7 → "VII"
+
+  status SeasonStatusEnumType @default(inscripciones)
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  teamSeasons TeamSeason[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Una liga no puede tener dos "temporada 7".
+  @@unique([leagueId, number])
+  // OJO: "máximo UNA temporada activa por liga" NO está aquí. Es un índice
+  // único parcial escrito a mano en la migración agregar_ligas_y_temporadas:
+  //   CREATE UNIQUE INDEX "seasons_una_activa_por_liga"
+  //     ON "seasons"("leagueId") WHERE "status" = 'activa';
+  // Si una `prisma migrate dev` futura propone DROP de ese índice, borra esa
+  // línea del .sql antes de aplicarlo.
+
+  @@map(name: "seasons")
+}
+
+// Ciclo de vida de una temporada:
+//   inscripciones → se preparan equipos y plantillas; todavía no es "la actual"
+//   activa        → se está jugando; máximo una por liga
+//   cerrada       → congelada; su historial ya no cambia
+enum SeasonStatusEnumType {
+  inscripciones
+  activa
+  cerrada
+}
+
+// La INSCRIPCIÓN de un equipo en una temporada, en una categoría.
+// "Patito" en LDT VII varonil y "Patito" en LDT VII mixto son DOS filas,
+// cada una con su propio plantel y sus propias estadísticas.
+// Regla: todo lo que es "de la temporada" vive aquí y nace en cero.
+model TeamSeason {
+  id String @id @default(uuid())
+
+  seasonId String
+  teamId   String
+
+  // Restrict en ambos: borrar una temporada o un equipo por error destruiría
+  // el historial que este modelo existe para proteger.
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Restrict)
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Restrict)
+
+  category TeamCategoryEnumType
+
+  // Estadísticas del equipo en ESTA inscripción (se capturan a mano por ahora).
+  gamesPlayed   Int @default(0)
+  wins          Int @default(0)
+  losses        Int @default(0)
+  ties          Int @default(0)
+  pointsFor     Int @default(0) // desempate de la tabla
+  pointsAgainst Int @default(0) // desempate de la tabla
+
+  memberships TeamMembership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // El mismo equipo puede estar en varias categorías de una temporada,
+  // pero no dos veces en la misma categoría.
+  @@unique([seasonId, teamId, category])
+  @@index([teamId])
+
+  @@map(name: "team_seasons")
 }
 
 // La PERSONA. Lo que no cambia según el equipo en el que juegue.
@@ -83,20 +181,22 @@ model Player {
   @@map(name: "players")
 }
 
-// La PARTICIPACIÓN de una persona en UN equipo.
+// La PARTICIPACIÓN de una persona en UNA inscripción (equipo + temporada + categoría).
 // Si Juan juega en el varonil y en el mixto, hay un Player y dos TeamMembership:
 // mismo nombre y edad, pero jersey, posiciones y estadísticas independientes.
+// Es un REGISTRO HISTÓRICO: cada temporada nace una fila nueva; las viejas
+// no se editan ni se borran, y así las estadísticas quedan para la posteridad.
 model TeamMembership {
   id       String @id @default(uuid())
 
-  playerId String
-  teamId   String
+  playerId     String
+  teamSeasonId String
 
   // Borrar a la persona borra sus membresías (ya no juega en ningún lado).
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  // Borrar un equipo NO se permite si todavía tiene jugadores: el controlador
-  // lanza CONFLICT antes de llegar aquí, para dar un mensaje entendible.
-  team   Team   @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  // Borrar una inscripción NO se permite si todavía tiene jugadores: el
+  // controlador lanza CONFLICT antes de llegar aquí, con un mensaje entendible.
+  teamSeason TeamSeason @relation(fields: [teamSeasonId], references: [id], onDelete: Restrict)
 
   jerseyNumber Int
   positions    PlayerPositionEnumType[]
@@ -122,10 +222,12 @@ model TeamMembership {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Una persona no puede estar dos veces en el mismo equipo...
-  @@unique([playerId, teamId])
-  // ...y dentro de un equipo, dos jugadores no pueden traer el mismo número.
-  @@unique([teamId, jerseyNumber])
+  // Una persona no puede estar dos veces en la misma inscripción...
+  @@unique([playerId, teamSeasonId])
+  // ...y dentro de una inscripción, dos jugadores no pueden traer el mismo número.
+  @@unique([teamSeasonId, jerseyNumber])
+  // La regla "no en dos equipos de la MISMA categoría en la misma temporada"
+  // cruza tres tablas, así que la hace cumplir el controlador, no la base.
 
   @@map(name: "team_memberships")
 }

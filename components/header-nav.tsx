@@ -50,6 +50,11 @@ export default function HeaderNav({ user }: { user: HeaderUser }) {
                         Jugadores
                     </Link>
                 </li>
+                <li>
+                    <Link href='/ligas' className='text-white hover:text-pink-500 font-semibold' onClick={() => setOpen(false)}>
+                        Temporadas
+                    </Link>
+                </li>
                 {/* {!user && (
                     <>
                         <li>

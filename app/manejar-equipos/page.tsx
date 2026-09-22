@@ -20,7 +20,12 @@ export default async function ManejarEquiposPage() {
                         Manejar equipos
                     </h1>
                     <p className="mb-8 text-center text-gray-400">
-                        Crea, edita y elimina los equipos de la liga.{' '}
+                        El nombre y el logo de cada equipo, que se quedan para siempre.
+                        Las inscripciones por temporada, en{' '}
+                        <Link href="/manejar-temporadas" className="text-pink-500 hover:text-pink-400">
+                            Manejar temporadas
+                        </Link>
+                        .{' '}
                         <Link href="/equipos" className="text-pink-500 hover:text-pink-400">
                             Ver el listado público
                         </Link>

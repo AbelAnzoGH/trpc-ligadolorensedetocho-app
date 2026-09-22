@@ -1,6 +1,12 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@/app/generated/prisma';
 import { almacenamiento } from '@/lib/server/storage';
+import {
+    asegurarTemporadaAbierta,
+    buscarChoquesDeCategoria,
+    mensajeChoques,
+} from '@/lib/server/reglas-inscripcion';
 import type {
     CreatePlayerInput,
     UpdatePlayerInput,
@@ -33,11 +39,13 @@ const toTRPCError = (err: unknown): never => {
     throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message });
 };
 
-// Cada membresía se devuelve junto con los datos básicos de su equipo,
-// para que la pantalla no tenga que hacer una segunda petición.
+// Cada membresía se devuelve junto con su inscripción: equipo (nombre y logo,
+// que son "de siempre") y temporada (con su liga), para que la pantalla no
+// tenga que hacer una segunda petición. Es el salto extra que cuesta el
+// Camino B: membership → teamSeason → team.
 const membershipSelect = {
     id: true,
-    teamId: true,
+    teamSeasonId: true,
     jerseyNumber: true,
     positions: true,
     // photoUrl sale al navegador (es lo que va en el <img>).
@@ -49,8 +57,29 @@ const membershipSelect = {
     safeties: true,
     gamesPlayed: true,
     availableForPlayoffs: true,
-    team: { select: { id: true, name: true, category: true } },
+    teamSeason: {
+        select: {
+            id: true,
+            category: true,
+            team: { select: { id: true, name: true, logoUrl: true } },
+            season: {
+                select: {
+                    id: true,
+                    number: true,
+                    status: true,
+                    league: { select: { id: true, name: true, slug: true } },
+                },
+            },
+        },
+    },
 } as const;
+
+// De la temporada más nueva a la más vieja. Va fuera del `as const` de abajo
+// porque Prisma no acepta arreglos de solo lectura en orderBy.
+const membershipOrder: Prisma.TeamMembershipOrderByWithRelationInput[] = [
+    { teamSeason: { season: { number: 'desc' } } },
+    { teamSeason: { category: 'asc' } },
+];
 
 const playerSelect = {
     id: true,
@@ -60,7 +89,7 @@ const playerSelect = {
     height: true,
     createdAt: true,
     updatedAt: true,
-    memberships: { select: membershipSelect },
+    memberships: { select: membershipSelect, orderBy: membershipOrder },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -70,11 +99,19 @@ const playerSelect = {
 export const listPlayersHandler = async ({ input }: { input?: ListPlayersInput }) => {
     try {
         const players = await prisma.player.findMany({
-            // "dame las personas que tengan AL MENOS una membresía en este equipo".
+            // "dame las personas que tengan AL MENOS una membresía que cumpla X".
             // `some` es la forma de filtrar por una relación en Prisma.
-            where: input?.teamId
-                ? { memberships: { some: { teamId: input.teamId } } }
-                : undefined,
+            where:
+                input?.teamSeasonId || input?.seasonId
+                    ? {
+                          memberships: {
+                              some: {
+                                  teamSeasonId: input.teamSeasonId,
+                                  teamSeason: input.seasonId ? { seasonId: input.seasonId } : undefined,
+                              },
+                          },
+                      }
+                    : undefined,
             select: playerSelect,
             orderBy: [{ lastName: 'asc' }, { name: 'asc' }],
         });
@@ -100,7 +137,33 @@ export const getPlayerHandler = async ({ input }: { input: PlayerIdInput }) => {
             throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe un jugador con ese id' });
         }
 
-        return { status: 'success', data: { player } };
+        // "¿Cuántos touchdowns lleva en toda su carrera?" No hay columna que lo
+        // guarde: es un SUM sobre todas sus membresías. El historial por
+        // temporada y el total de carrera salen del MISMO dato, sin duplicarlo.
+        const suma = await prisma.teamMembership.aggregate({
+            where: { playerId: input.id },
+            _sum: {
+                touchdowns: true,
+                interceptions: true,
+                touchdownPasses: true,
+                safeties: true,
+                gamesPlayed: true,
+            },
+        });
+
+        const carrera = {
+            // Temporadas DISTINTAS: jugar varonil y mixto en LDT VIII cuenta como
+            // una temporada (pero dos participaciones).
+            temporadas: new Set(player.memberships.map((m) => m.teamSeason.season.id)).size,
+            participaciones: player.memberships.length,
+            touchdowns: suma._sum.touchdowns ?? 0,
+            interceptions: suma._sum.interceptions ?? 0,
+            touchdownPasses: suma._sum.touchdownPasses ?? 0,
+            safeties: suma._sum.safeties ?? 0,
+            gamesPlayed: suma._sum.gamesPlayed ?? 0,
+        };
+
+        return { status: 'success', data: { player, carrera } };
     } catch (err: unknown) {
         return toTRPCError(err);
     }
@@ -191,32 +254,59 @@ export const deletePlayerHandler = async ({ input }: { input: PlayerIdInput }) =
 
 export const addPlayerToTeamHandler = async ({ input }: { input: CreateMembershipInput }) => {
     try {
-        const [player, team] = await Promise.all([
+        const [player, teamSeason] = await Promise.all([
             prisma.player.findUnique({ where: { id: input.playerId }, select: { id: true } }),
-            prisma.team.findUnique({ where: { id: input.teamId }, select: { id: true } }),
+            prisma.teamSeason.findUnique({
+                where: { id: input.teamSeasonId },
+                select: {
+                    seasonId: true,
+                    category: true,
+                    season: { select: { status: true, number: true, league: { select: { name: true } } } },
+                },
+            }),
         ]);
 
         if (!player) {
             throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe un jugador con ese id' });
         }
-        if (!team) {
-            throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe un equipo con ese id' });
+        if (!teamSeason) {
+            throw new TRPCError({ code: 'NOT_FOUND', message: 'Ese equipo no está inscrito en esa temporada' });
         }
+        asegurarTemporadaAbierta(teamSeason.season);
 
         const yaEsMiembro = await prisma.teamMembership.findUnique({
-            where: { playerId_teamId: { playerId: input.playerId, teamId: input.teamId } },
+            where: {
+                playerId_teamSeasonId: { playerId: input.playerId, teamSeasonId: input.teamSeasonId },
+            },
             select: { id: true },
         });
 
         if (yaEsMiembro) {
             throw new TRPCError({
                 code: 'CONFLICT',
-                message: 'Ese jugador ya pertenece a este equipo',
+                message: 'Ese jugador ya está en este equipo en esta temporada',
             });
         }
 
+        // Regla de la liga: no puede jugar en OTRO equipo de la misma
+        // categoría en la misma temporada.
+        const choques = await buscarChoquesDeCategoria(prisma, {
+            playerIds: [input.playerId],
+            seasonId: teamSeason.seasonId,
+            category: teamSeason.category,
+            excluirTeamSeasonId: input.teamSeasonId,
+        });
+        if (choques.length > 0) {
+            throw new TRPCError({ code: 'CONFLICT', message: mensajeChoques(choques, teamSeason.category) });
+        }
+
         const jerseyOcupado = await prisma.teamMembership.findUnique({
-            where: { teamId_jerseyNumber: { teamId: input.teamId, jerseyNumber: input.jerseyNumber } },
+            where: {
+                teamSeasonId_jerseyNumber: {
+                    teamSeasonId: input.teamSeasonId,
+                    jerseyNumber: input.jerseyNumber,
+                },
+            },
             select: { id: true },
         });
 
@@ -230,7 +320,7 @@ export const addPlayerToTeamHandler = async ({ input }: { input: CreateMembershi
         const membership = await prisma.teamMembership.create({
             data: {
                 playerId: input.playerId,
-                teamId: input.teamId,
+                teamSeasonId: input.teamSeasonId,
                 jerseyNumber: input.jerseyNumber,
                 positions: input.positions,
                 // La imagen ya se subió antes por /api/upload; aquí solo
@@ -253,21 +343,21 @@ export const updateMembershipHandler = async ({ input }: { input: UpdateMembersh
 
         const existing = await prisma.teamMembership.findUnique({
             where: { id },
-            // Se pide photoKey además del teamId: hace falta para saber
+            // Se pide photoKey además del teamSeasonId: hace falta para saber
             // qué archivo borrar si la foto cambia.
-            select: { id: true, teamId: true, photoKey: true },
+            select: { id: true, teamSeasonId: true, photoKey: true },
         });
 
         if (!existing) {
             throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe esa membresía' });
         }
 
-        // Si cambia el jersey, tiene que seguir libre dentro del MISMO equipo.
+        // Si cambia el jersey, tiene que seguir libre dentro de la MISMA inscripción.
         if (changes.jerseyNumber !== undefined) {
             const jerseyOcupado = await prisma.teamMembership.findUnique({
                 where: {
-                    teamId_jerseyNumber: {
-                        teamId: existing.teamId,
+                    teamSeasonId_jerseyNumber: {
+                        teamSeasonId: existing.teamSeasonId,
                         jerseyNumber: changes.jerseyNumber,
                     },
                 },
@@ -315,8 +405,11 @@ export const removeMembershipHandler = async ({ input }: { input: MembershipIdIn
             throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe esa membresía' });
         }
 
-        // Ojo: esto borra también las estadísticas de ese jugador EN ESE EQUIPO.
-        // La persona y sus otras membresías quedan intactas.
+        // Ojo: esto borra también las estadísticas de ese jugador EN ESA
+        // inscripción. La persona y sus otras membresías (otras temporadas,
+        // otras categorías) quedan intactas. Es para corregir errores de
+        // captura; un jugador que "se fue" simplemente no se agrega a la
+        // temporada siguiente, y su fila vieja se queda como historial.
         await prisma.teamMembership.delete({ where: { id: input.id } });
 
         // La membresía ya no existe: su foto tampoco tiene por qué seguir ahí.
@@ -346,7 +439,8 @@ export const listMembershipsHandler = async ({
         // Las llaves con `undefined` las ignora Prisma, así que no hace falta
         // construir el objeto con ifs.
         const where = {
-            teamId: input?.teamId,
+            teamSeasonId: input?.teamSeasonId,
+            teamSeason: input?.seasonId ? { seasonId: input.seasonId } : undefined,
             jerseyNumber: input?.jerseyNumber,
             // `has` es el operador de Prisma para "este arreglo contiene X".
             positions: input?.position ? { has: input.position } : undefined,

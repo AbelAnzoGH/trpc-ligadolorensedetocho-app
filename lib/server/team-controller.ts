@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@/lib/prisma';
 import { almacenamiento } from '@/lib/server/storage';
+import { asegurarTemporadaAbierta } from '@/lib/server/reglas-inscripcion';
 import type {
     CreateTeamInput,
     UpdateTeamInput,
@@ -13,13 +14,14 @@ import type {
 const teamSelect = {
     id: true,
     name: true,
-    category: true,
     // logoUrl sí sale al navegador (es lo que va en el <img>).
     // logoKey NO: es un detalle interno del almacenamiento que solo el
     // servidor necesita para poder borrar el archivo.
     logoUrl: true,
     createdAt: true,
     updatedAt: true,
+    // En cuántas temporadas ha jugado. Sirve para saber si se puede borrar.
+    _count: { select: { teamSeasons: true } },
 } as const;
 
 // Convierte cualquier error desconocido en un TRPCError.
@@ -48,7 +50,9 @@ const toTRPCError = (err: unknown): never => {
 export const listTeamsHandler = async ({ input }: { input?: ListTeamsInput }) => {
     try {
         const teams = await prisma.team.findMany({
-            where: input?.category ? { category: input.category } : undefined,
+            where: input?.search
+                ? { name: { contains: input.search, mode: 'insensitive' } }
+                : undefined,
             select: teamSelect,
             orderBy: { name: 'asc' },
         });
@@ -102,12 +106,35 @@ export const createTeamHandler = async ({ input }: { input: CreateTeamInput }) =
             });
         }
 
+        // Si piden inscribirlo de una vez, la temporada tiene que existir y
+        // estar abierta. Se revisa ANTES de crear nada.
+        if (input.inscripcion) {
+            const season = await prisma.season.findUnique({
+                where: { id: input.inscripcion.seasonId },
+                select: { status: true, number: true, league: { select: { name: true } } },
+            });
+            if (!season) {
+                throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe esa temporada' });
+            }
+            asegurarTemporadaAbierta(season);
+        }
+
+        // Escritura anidada: Prisma crea el equipo y su inscripción en una
+        // sola operación atómica. Si la inscripción falla, el equipo tampoco
+        // se crea.
         const team = await prisma.team.create({
             data: {
                 name: input.name,
-                category: input.category,
                 logoUrl: input.logoUrl,
                 logoKey: input.logoKey,
+                teamSeasons: input.inscripcion
+                    ? {
+                          create: {
+                              seasonId: input.inscripcion.seasonId,
+                              category: input.inscripcion.category,
+                          },
+                      }
+                    : undefined,
             },
             select: teamSelect,
         });
@@ -193,17 +220,19 @@ export const deleteTeamHandler = async ({ input }: { input: TeamIdInput }) => {
             });
         }
 
-        // Un equipo con jugadores no se puede borrar: primero hay que quitarlos.
-        // Sin esta comprobación, el onDelete: Restrict del schema lanzaría un
-        // error críptico de Postgres que llegaría al usuario como un 500.
-        const jugadores = await prisma.teamMembership.count({
+        // Un equipo que ya jugó alguna temporada NO se puede borrar: su
+        // historial (y el de sus jugadores) cuelga de esas inscripciones.
+        // Solo se borra un equipo que nunca se inscribió (típicamente, uno
+        // creado por error). Sin esta comprobación, el onDelete: Restrict del
+        // schema lanzaría un error críptico de Postgres (un 500).
+        const inscripciones = await prisma.teamSeason.count({
             where: { teamId: input.id },
         });
 
-        if (jugadores > 0) {
+        if (inscripciones > 0) {
             throw new TRPCError({
                 code: 'CONFLICT',
-                message: `No se puede eliminar: el equipo todavía tiene ${jugadores} ${jugadores === 1 ? 'jugador' : 'jugadores'}. Quítalos primero.`,
+                message: `No se puede eliminar: el equipo ha participado en ${inscripciones} ${inscripciones === 1 ? 'temporada' : 'temporadas'} y su historial se conserva. Si ya no juega, simplemente no lo inscribas en la siguiente.`,
             });
         }
 

@@ -16,7 +16,7 @@ export default async function ManejarJugadoresPage() {
                         Manejar jugadores
                     </h1>
                     <p className="mb-8 text-center text-gray-400">
-                        Registra jugadores y asígnalos a equipos.{' '}
+                        Registra jugadores y agrégalos a los equipos de cada temporada.{' '}
                         <Link href="/manejar-equipos" className="text-pink-500 hover:text-pink-400">
                             Manejar equipos
                         </Link>

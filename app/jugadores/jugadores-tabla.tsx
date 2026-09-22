@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { trpcQuery } from '@/utils/trpc-fetch';
+import { useLigas } from '@/utils/use-ligas';
+import SelectorTemporada from '@/components/selector-temporada';
 import { playerPositions, type PlayerPosition } from '@/lib/player-schema';
-import { inputClass, etiquetaCategoria, type Team, type ListTeamsResponse } from '@/lib/team-ui';
+import { inputClass, etiquetaCategoria } from '@/lib/team-ui';
+import type { TeamSeason, ListTeamSeasonsResponse } from '@/lib/season-ui';
 import {
     etiquetaPosicion,
     type MembershipConJugador,
@@ -16,11 +19,14 @@ type Orden = 'asc' | 'desc';
 export default function JugadoresTabla() {
     const [membresias, setMembresias] = useState<MembershipConJugador[]>([]);
     const [total, setTotal] = useState(0);
-    const [equipos, setEquipos] = useState<Team[]>([]);
+    // La temporada manda: los equipos del filtro y los jugadores son de ella.
+    const { ligas, cargando: cargandoLigas, error: errorLigas, seasonId, setSeasonId } = useLigas();
+    const [equipos, setEquipos] = useState<TeamSeason[]>([]);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     // --- Filtros que se aplican al instante (son <select>, un clic = un valor) ---
+    // equipoId es el id de la INSCRIPCIÓN (teamSeasonId), no del equipo.
     const [equipoId, setEquipoId] = useState('');
     const [posicion, setPosicion] = useState<PlayerPosition | ''>('');
     const [orden, setOrden] = useState<Orden>('asc');
@@ -44,21 +50,37 @@ export default function JugadoresTabla() {
         return () => clearTimeout(id);
     }, [busqueda, jersey]);
 
-    // Los equipos del <select> se cargan una sola vez, no en cada filtrado.
+    // Los equipos del <select> se cargan una vez POR TEMPORADA, no en cada
+    // filtrado. Al cambiar de temporada, el equipo elegido deja de tener
+    // sentido (es una inscripción de otra temporada) y se limpia.
     useEffect(() => {
-        trpcQuery<ListTeamsResponse>('listTeams')
-            .then((data) => setEquipos(data.data.teams))
+        setEquipoId('');
+        if (!seasonId) {
+            setEquipos([]);
+            return;
+        }
+        trpcQuery<ListTeamSeasonsResponse>('listTeamSeasons', { seasonId })
+            .then((data) => setEquipos(data.data.teamSeasons))
             .catch(() => setEquipos([]));
-    }, []);
+    }, [seasonId]);
 
     const cargar = useCallback(async () => {
+        // Sin temporada no hay nada que listar (todavía cargan las ligas,
+        // o no existe ninguna temporada).
+        if (!seasonId) {
+            setMembresias([]);
+            setTotal(0);
+            setCargando(false);
+            return;
+        }
         setCargando(true);
         setError(null);
         try {
             const numeroJersey = jerseyAplicado === '' ? undefined : Number(jerseyAplicado);
 
             const data = await trpcQuery<ListMembershipsResponse>('listMemberships', {
-                teamId: equipoId || undefined,
+                seasonId,
+                teamSeasonId: equipoId || undefined,
                 position: posicion || undefined,
                 // Un jersey mal escrito (letras) da NaN; mejor no mandarlo
                 // que recibir un 400 de Zod mientras el usuario aún escribe.
@@ -74,7 +96,7 @@ export default function JugadoresTabla() {
         } finally {
             setCargando(false);
         }
-    }, [equipoId, posicion, orden, busquedaAplicada, jerseyAplicado]);
+    }, [seasonId, equipoId, posicion, orden, busquedaAplicada, jerseyAplicado]);
 
     useEffect(() => {
         cargar();
@@ -91,8 +113,14 @@ export default function JugadoresTabla() {
         setJersey('');
     };
 
+    if (cargandoLigas) return <p className="text-gray-300">Cargando temporadas...</p>;
+    if (errorLigas) return <p className="text-red-400">Error: {errorLigas}</p>;
+
     return (
         <div className="space-y-6">
+            {/* ---------- Temporada ---------- */}
+            <SelectorTemporada ligas={ligas} seasonId={seasonId} onChange={setSeasonId} />
+
             {/* ---------- Barra de filtros ---------- */}
             <div className="grid gap-4 rounded-lg border border-gray-800 bg-gray-900/40 p-5 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="flex flex-col gap-1">
@@ -104,9 +132,9 @@ export default function JugadoresTabla() {
                         className={inputClass}
                     >
                         <option value="">Todos</option>
-                        {equipos.map((equipo) => (
-                            <option key={equipo.id} value={equipo.id}>
-                                {equipo.name} ({etiquetaCategoria[equipo.category]})
+                        {equipos.map((inscripcion) => (
+                            <option key={inscripcion.id} value={inscripcion.id}>
+                                {inscripcion.team.name} ({etiquetaCategoria[inscripcion.category]})
                             </option>
                         ))}
                     </select>

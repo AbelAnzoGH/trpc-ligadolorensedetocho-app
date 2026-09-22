@@ -14,7 +14,7 @@ export default async function EquiposPage() {
                         Equipos de la liga
                     </h1>
                     <p className="mb-8 text-center text-gray-400">
-                        Todos los equipos registrados en la Liga Dolorense de Tocho.
+                        Los equipos inscritos en cada temporada de nuestras ligas.
                     </p>
                     <EquiposTabla />
                 </div>

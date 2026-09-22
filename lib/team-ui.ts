@@ -7,14 +7,20 @@ import type { TeamCategory } from '@/lib/team-schema';
  * se actualiza en un solo lugar.
  */
 
+/**
+ * El equipo como IDENTIDAD permanente: lo que no cambia entre temporadas.
+ * Su categoría, plantel y estadísticas viven en cada inscripción
+ * (TeamSeason, ver lib/season-ui.ts).
+ */
 export type Team = {
     id: string;
     name: string;
-    category: TeamCategory;
     /** Dirección del logo, o null si el equipo no tiene. */
     logoUrl: string | null;
     createdAt: string;
     updatedAt: string;
+    /** En cuántas temporadas/categorías ha estado inscrito. */
+    _count: { teamSeasons: number };
 };
 
 export type ListTeamsResponse = {

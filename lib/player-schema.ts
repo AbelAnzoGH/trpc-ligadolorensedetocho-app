@@ -53,14 +53,18 @@ export const playerIdSchema = z.object({
     id: z.string({ error: "El id del jugador es requerido" }).min(1, { error: "El id del jugador es requerido" }),
 });
 
+// Filtros del panel de administración. Ambos opcionales:
+//   seasonId     → personas que juegan en ESA temporada (en cualquier equipo)
+//   teamSeasonId → personas del plantel de ESA inscripción
 export const listPlayersSchema = z
     .object({
-        teamId: z.string().min(1).optional(),
+        seasonId: z.string().min(1).optional(),
+        teamSeasonId: z.string().min(1).optional(),
     })
     .optional();
 
 // ---------------------------------------------------------------------------
-// LA MEMBRESÍA (la persona jugando en UN equipo)
+// LA MEMBRESÍA (la persona jugando en UNA inscripción: equipo + temporada + categoría)
 // ---------------------------------------------------------------------------
 
 const statSchema = (etiqueta: string) =>
@@ -90,7 +94,11 @@ const claveImagenSchema = z
 
 export const createMembershipSchema = z.object({
     playerId: z.string({ error: "El id del jugador es requerido" }).min(1, { error: "El id del jugador es requerido" }),
-    teamId: z.string({ error: "El id del equipo es requerido" }).min(1, { error: "El id del equipo es requerido" }),
+    // Antes era teamId. Ahora la membresía cuelga de la INSCRIPCIÓN del equipo
+    // en una temporada: "Juan en Patito, LDT VII, varonil".
+    teamSeasonId: z
+        .string({ error: "Elige el equipo y la temporada" })
+        .min(1, { error: "Elige el equipo y la temporada" }),
 
     jerseyNumber: z
         .number({ error: "El número de jersey es requerido" })
@@ -148,7 +156,11 @@ export const membershipIdSchema = z.object({
  */
 export const listMembershipsSchema = z
     .object({
-        teamId: z.string().min(1).optional(),
+        // De qué temporada (todas sus inscripciones) y, opcionalmente, de qué
+        // inscripción concreta. Sin ninguno de los dos se lista la historia
+        // completa, que casi nunca es lo que se quiere en pantalla.
+        seasonId: z.string().min(1).optional(),
+        teamSeasonId: z.string().min(1).optional(),
         position: playerPositionSchema.optional(),
 
         jerseyNumber: z

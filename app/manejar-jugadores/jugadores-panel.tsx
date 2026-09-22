@@ -3,23 +3,36 @@
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { trpcQuery, trpcMutation } from '@/utils/trpc-fetch';
-import { inputClass, type Team, type ListTeamsResponse } from '@/lib/team-ui';
+import { useLigas } from '@/utils/use-ligas';
+import SelectorTemporada from '@/components/selector-temporada';
+import { inputClass, etiquetaCategoria } from '@/lib/team-ui';
+import { nombreTemporada, type TeamSeason, type ListTeamSeasonsResponse } from '@/lib/season-ui';
 import type { Player, ListPlayersResponse } from '@/lib/player-ui';
 import JugadorCard from './jugador-card';
 
+// Valor especial del filtro: "todas las personas que juegan en la temporada".
+const FILTRO_TEMPORADA = '__temporada';
+
 /**
- * Orquestador de la pantalla: carga jugadores y equipos, y le pasa a cada
- * tarjeta la función `cargar` para que se refresque todo tras cada cambio.
+ * Orquestador de la pantalla: carga jugadores y las inscripciones de la
+ * TEMPORADA DE TRABAJO, y le pasa a cada tarjeta la función `cargar` para
+ * que se refresque todo tras cada cambio.
+ *
+ * La temporada de trabajo decide a qué equipos se puede agregar a alguien:
+ * agregar a Juan "al Patito" siempre significa "al Patito de ESTA temporada".
  */
 export default function JugadoresPanel() {
+    const { ligas, seasonId, setSeasonId, elegida } = useLigas();
+
     const [jugadores, setJugadores] = useState<Player[]>([]);
-    const [equipos, setEquipos] = useState<Team[]>([]);
+    const [equipos, setEquipos] = useState<TeamSeason[]>([]);
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Filtro por equipo ('' = todos). Este sí se resuelve en el servidor.
-    const [filtroEquipo, setFiltroEquipo] = useState('');
+    // Filtro ('' = todas las personas, FILTRO_TEMPORADA = las que juegan en
+    // la temporada de trabajo, o el id de una inscripción). Se resuelve en el servidor.
+    const [filtroEquipo, setFiltroEquipo] = useState(FILTRO_TEMPORADA);
     // Buscador por nombre: se filtra en el navegador sobre lo ya cargado.
     const [busqueda, setBusqueda] = useState('');
 
@@ -35,22 +48,39 @@ export default function JugadoresPanel() {
         try {
             // Las dos peticiones no dependen una de otra, así que van en
             // paralelo con Promise.all en vez de una tras otra.
+            const filtro =
+                filtroEquipo === FILTRO_TEMPORADA
+                    ? seasonId
+                        ? { seasonId }
+                        : undefined
+                    : filtroEquipo
+                      ? { teamSeasonId: filtroEquipo }
+                      : undefined;
+
             const [respJugadores, respEquipos] = await Promise.all([
-                trpcQuery<ListPlayersResponse>(
-                    'listPlayers',
-                    filtroEquipo ? { teamId: filtroEquipo } : undefined,
-                ),
-                trpcQuery<ListTeamsResponse>('listTeams'),
+                trpcQuery<ListPlayersResponse>('listPlayers', filtro),
+                seasonId
+                    ? trpcQuery<ListTeamSeasonsResponse>('listTeamSeasons', { seasonId })
+                    : Promise.resolve(null),
             ]);
 
             setJugadores(respJugadores.data.players);
-            setEquipos(respEquipos.data.teams);
+            setEquipos(respEquipos?.data.teamSeasons ?? []);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error desconocido');
         } finally {
             setCargando(false);
         }
-    }, [filtroEquipo]);
+    }, [filtroEquipo, seasonId]);
+
+    // Al cambiar de temporada, un filtro por inscripción de la temporada
+    // anterior ya no tiene sentido: se regresa a "esta temporada".
+    const cambiarTemporada = (id: string) => {
+        setSeasonId(id);
+        setFiltroEquipo(FILTRO_TEMPORADA);
+    };
+
+    const temporada = elegida ? nombreTemporada(elegida.liga, elegida.temporada.number) : '';
 
     useEffect(() => {
         cargar();
@@ -106,8 +136,9 @@ export default function JugadoresPanel() {
                 <div>
                     <h2 className="text-xl font-semibold text-white">Nuevo jugador</h2>
                     <p className="mt-1 text-sm text-gray-400">
-                        Primero se registra la persona. Después se le asigna uno o más
-                        equipos, cada uno con su propio jersey y estadísticas.
+                        Primero se registra la persona (una sola vez, para siempre).
+                        Después se le agrega a los equipos de cada temporada, cada uno con
+                        su propio jersey y estadísticas.
                     </p>
                 </div>
 
@@ -167,20 +198,32 @@ export default function JugadoresPanel() {
                 </button>
             </form>
 
+            {/* ---------- Temporada de trabajo ---------- */}
+            <div className="space-y-2 rounded-lg border border-pink-500/30 bg-gray-900/40 p-4">
+                <p className="text-sm font-semibold text-white">Temporada de trabajo</p>
+                <p className="text-xs text-gray-500">
+                    Los jugadores se agregan a los equipos inscritos en esta temporada.
+                </p>
+                <SelectorTemporada ligas={ligas} seasonId={seasonId} onChange={cambiarTemporada} idPrefix="trabajo" />
+            </div>
+
             {/* ---------- Filtros ---------- */}
             <div className="flex flex-wrap items-end gap-3">
                 <div className="flex flex-col gap-1">
-                    <label htmlFor="filtro-equipo" className="text-sm text-gray-300">Equipo</label>
+                    <label htmlFor="filtro-equipo" className="text-sm text-gray-300">Mostrar</label>
                     <select
                         id="filtro-equipo"
                         value={filtroEquipo}
                         onChange={(e) => setFiltroEquipo(e.target.value)}
                         className={inputClass}
                     >
-                        <option value="">Todos los equipos</option>
-                        {equipos.map((equipo) => (
-                            <option key={equipo.id} value={equipo.id}>
-                                {equipo.name}
+                        <option value={FILTRO_TEMPORADA}>
+                            Jugadores de {temporada || 'la temporada'}
+                        </option>
+                        <option value="">Todas las personas registradas</option>
+                        {equipos.map((inscripcion) => (
+                            <option key={inscripcion.id} value={inscripcion.id}>
+                                {inscripcion.team.name} ({etiquetaCategoria[inscripcion.category]})
                             </option>
                         ))}
                     </select>
@@ -211,7 +254,9 @@ export default function JugadoresPanel() {
             {!cargando && !error && visibles.length === 0 && (
                 <p className="text-gray-400">
                     {jugadores.length === 0
-                        ? 'Todavía no hay jugadores registrados.'
+                        ? filtroEquipo
+                            ? 'Nadie juega todavía aquí. Elige "Todas las personas registradas" para agregar a alguien.'
+                            : 'Todavía no hay jugadores registrados.'
                         : 'Ningún jugador coincide con la búsqueda.'}
                 </p>
             )}
@@ -222,7 +267,9 @@ export default function JugadoresPanel() {
                         <JugadorCard
                             key={jugador.id}
                             jugador={jugador}
-                            equipos={equipos}
+                            inscripciones={equipos}
+                            seasonId={seasonId}
+                            temporada={temporada}
                             onCambio={cargar}
                         />
                     ))}

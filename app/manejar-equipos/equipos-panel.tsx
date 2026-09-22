@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { trpcQuery, trpcMutation } from '@/utils/trpc-fetch';
 import { subirImagen } from '@/utils/subir-imagen';
+import { useLigas } from '@/utils/use-ligas';
+import SelectorTemporada from '@/components/selector-temporada';
 import { teamCategories, type TeamCategory } from '@/lib/team-schema';
 import {
     etiquetaCategoria,
@@ -18,6 +20,11 @@ import SelectorImagen from '@/components/selector-imagen';
  * Panel de administración de equipos: el CRUD completo, con logo opcional.
  * Solo se renderiza dentro de /manejar-equipos, que ya verificó la sesión
  * del lado del servidor antes de mostrar nada.
+ *
+ * Aquí se maneja el equipo como IDENTIDAD permanente (nombre y logo). La
+ * categoría, el plantel y las estadísticas son de cada inscripción, y esas
+ * se manejan en /manejar-temporadas. Como atajo, al crear un equipo nuevo
+ * se puede inscribir de una vez en una temporada.
  */
 export default function EquiposPanel() {
     const [equipos, setEquipos] = useState<Team[]>([]);
@@ -28,6 +35,10 @@ export default function EquiposPanel() {
     // Formulario. Si editandoId tiene valor, el formulario está en modo edición.
     const [editandoId, setEditandoId] = useState<string | null>(null);
     const [nombre, setNombre] = useState('');
+
+    // --- Inscripción opcional al crear (solo en modo "nuevo") ---
+    const { ligas, seasonId, setSeasonId } = useLigas();
+    const [inscribir, setInscribir] = useState(true);
     const [categoria, setCategoria] = useState<TeamCategory>('varonil');
 
     // --- Estado del logo ---
@@ -60,7 +71,6 @@ export default function EquiposPanel() {
     const limpiarFormulario = () => {
         setEditandoId(null);
         setNombre('');
-        setCategoria('varonil');
         setArchivoLogo(null);
         setLogoActual(null);
         setLogoOriginal(null);
@@ -96,17 +106,17 @@ export default function EquiposPanel() {
                 await trpcMutation<TeamResponse>('updateTeam', {
                     id: editandoId,
                     name: nombre.trim(),
-                    category: categoria,
                     ...logo,
                 });
                 toast.success('Equipo actualizado');
             } else {
+                const conInscripcion = inscribir && seasonId;
                 await trpcMutation<TeamResponse>('createTeam', {
                     name: nombre.trim(),
-                    category: categoria,
                     ...logo,
+                    inscripcion: conInscripcion ? { seasonId, category: categoria } : undefined,
                 });
-                toast.success('Equipo creado');
+                toast.success(conInscripcion ? 'Equipo creado e inscrito' : 'Equipo creado');
             }
 
             limpiarFormulario();
@@ -121,7 +131,6 @@ export default function EquiposPanel() {
     const onEditar = (equipo: Team) => {
         setEditandoId(equipo.id);
         setNombre(equipo.name);
-        setCategoria(equipo.category);
         setArchivoLogo(null);
         setLogoActual(equipo.logoUrl);
         setLogoOriginal(equipo.logoUrl);
@@ -163,19 +172,45 @@ export default function EquiposPanel() {
                     />
                 </div>
 
-                <div className="flex flex-col gap-1">
-                    <label htmlFor="categoria" className="text-sm text-gray-300">Categoría</label>
-                    <select
-                        id="categoria"
-                        value={categoria}
-                        onChange={(e) => setCategoria(e.target.value as TeamCategory)}
-                        className={inputClass}
-                    >
-                        {teamCategories.map((c) => (
-                            <option key={c} value={c}>{etiquetaCategoria[c]}</option>
-                        ))}
-                    </select>
-                </div>
+                {/* La inscripción solo aplica al CREAR: para inscribir a un
+                    equipo existente en otra temporada está /manejar-temporadas. */}
+                {!editandoId && (
+                    <fieldset className="space-y-3 rounded-md border border-gray-800 p-4">
+                        <label className="flex items-center gap-2 text-sm text-gray-300">
+                            <input
+                                type="checkbox"
+                                checked={inscribir}
+                                onChange={(e) => setInscribir(e.target.checked)}
+                                className="accent-pink-500"
+                            />
+                            Inscribirlo de una vez en una temporada
+                        </label>
+
+                        {inscribir && (
+                            <div className="flex flex-wrap items-end gap-3">
+                                <SelectorTemporada
+                                    ligas={ligas}
+                                    seasonId={seasonId}
+                                    onChange={setSeasonId}
+                                    idPrefix="nuevo"
+                                />
+                                <div className="flex flex-col gap-1">
+                                    <label htmlFor="categoria" className="text-sm text-gray-300">Categoría</label>
+                                    <select
+                                        id="categoria"
+                                        value={categoria}
+                                        onChange={(e) => setCategoria(e.target.value as TeamCategory)}
+                                        className={inputClass}
+                                    >
+                                        {teamCategories.map((c) => (
+                                            <option key={c} value={c}>{etiquetaCategoria[c]}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+                    </fieldset>
+                )}
 
                 <SelectorImagen
                     archivo={archivoLogo}
@@ -256,7 +291,9 @@ export default function EquiposPanel() {
                                     <span className="min-w-0 truncate">
                                         <strong className="text-white">{equipo.name}</strong>{' '}
                                         <span className="text-sm text-gray-400">
-                                            ({etiquetaCategoria[equipo.category]})
+                                            ({equipo._count.teamSeasons === 0
+                                                ? 'sin inscripciones'
+                                                : `${equipo._count.teamSeasons} ${equipo._count.teamSeasons === 1 ? 'inscripción' : 'inscripciones'}`})
                                         </span>
                                     </span>
                                 </span>
@@ -269,6 +306,9 @@ export default function EquiposPanel() {
                                     >
                                         Editar
                                     </button>
+                                    {/* Un equipo con historial no se borra (el backend
+                                        lo rechaza); ni siquiera se ofrece el botón. */}
+                                    {equipo._count.teamSeasons === 0 && (
                                     <button
                                         type="button"
                                         onClick={() => onEliminar(equipo)}
@@ -277,6 +317,7 @@ export default function EquiposPanel() {
                                     >
                                         Eliminar
                                     </button>
+                                    )}
                                 </span>
                             </li>
                         ))}

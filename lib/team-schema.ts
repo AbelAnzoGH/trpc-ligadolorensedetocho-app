@@ -37,19 +37,26 @@ export const createTeamSchema = z.object({
     .max(255, { error: "El nombre no puede tener más de 255 caracteres" })
     .trim(),
 
-  category: teamCategorySchema,
-
   // El logo es opcional: un equipo puede crearse sin él y agregarlo después.
   logoUrl: rutaImagenSchema.optional(),
   logoKey: claveImagenSchema.optional(),
+
+  // La categoría YA NO es del equipo: es de su inscripción en una temporada.
+  // Como atajo, al crear un equipo nuevo se puede inscribir de una vez.
+  // Si no viene, el equipo existe en la liga pero no juega ninguna temporada.
+  inscripcion: z
+    .object({
+      seasonId: z.string().min(1, { error: "Elige la temporada" }),
+      category: teamCategorySchema,
+    })
+    .optional(),
 });
 
 // Para actualizar: el id siempre es obligatorio, pero los demás campos
-// son opcionales (puedes cambiar solo el nombre, solo la categoría, o ambos).
+// son opcionales. La categoría ya no está aquí: se cambia en la inscripción.
 export const updateTeamSchema = z.object({
   id: z.string({ error: "El id del equipo es requerido" }).min(1, { error: "El id del equipo es requerido" }),
   name: createTeamSchema.shape.name.optional(),
-  category: teamCategorySchema.optional(),
 
   // Aquí hay TRES situaciones distintas y por eso es `.nullable().optional()`:
   //   campo ausente (undefined) → no toques el logo
@@ -64,11 +71,13 @@ export const teamIdSchema = z.object({
   id: z.string({ error: "El id del equipo es requerido" }).min(1, { error: "El id del equipo es requerido" }),
 });
 
-// Filtro opcional para el listado. Todo el objeto es opcional
-// para poder llamar a listTeams sin mandar nada.
+// listTeams devuelve los equipos como IDENTIDADES permanentes (nombre y
+// logo), sin temporada. Para "los equipos de LDT VII" se usa
+// listTeamSeasons({ seasonId }). Todo el objeto es opcional para poder
+// llamarlo sin mandar nada.
 export const listTeamsSchema = z
   .object({
-    category: teamCategorySchema.optional(),
+    search: z.string().trim().min(1).optional(),
   })
   .optional();
 

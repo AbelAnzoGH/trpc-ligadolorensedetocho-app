@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Modal from '@/components/modal';
 import Spinner from '@/components/spinner';
 import { trpcQuery } from '@/utils/trpc-fetch';
-import { etiquetaCategoria, type Team } from '@/lib/team-ui';
+import { etiquetaCategoria } from '@/lib/team-ui';
+import type { TeamSeason } from '@/lib/season-ui';
 import {
     etiquetaPosicion,
     type MembershipConJugador,
@@ -12,7 +13,9 @@ import {
 } from '@/lib/player-ui';
 
 /**
- * Ventana emergente con el plantel de UN equipo.
+ * Ventana emergente con el plantel de UNA inscripción (un equipo en una
+ * temporada y categoría). El plantel no es del equipo: es de la inscripción.
+ * Por eso "Patito" en LDT VII y en LDT VIII muestra jugadores distintos.
  *
  * Reglas de diseño:
  *   - Es PÚBLICA: usa `listMemberships`, que está declarado como
@@ -29,11 +32,14 @@ import {
  * salir como #7 en el varonil y #23 en el mixto.
  */
 export default function EquipoRosterModal({
-    equipo,
+    inscripcion,
+    temporada,
     onCerrar,
 }: {
-    /** El equipo cuyo plantel se muestra, o null si no hay ninguno abierto. */
-    equipo: Team | null;
+    /** La inscripción cuyo plantel se muestra, o null si no hay ninguna abierta. */
+    inscripcion: TeamSeason | null;
+    /** Nombre de la temporada para el subtítulo ("LDT VII"). */
+    temporada?: string;
     onCerrar: () => void;
 }) {
     const [jugadores, setJugadores] = useState<MembershipConJugador[]>([]);
@@ -42,7 +48,7 @@ export default function EquipoRosterModal({
 
     useEffect(() => {
         // Modal cerrado: no hay nada que pedir.
-        if (!equipo) return;
+        if (!inscripcion) return;
 
         // `cancelado` evita el caso de "abro un equipo, lo cierro y abro otro
         // antes de que llegue la primera respuesta": sin esta bandera, la
@@ -54,7 +60,7 @@ export default function EquipoRosterModal({
         setError(null);
         setJugadores([]);
 
-        trpcQuery<ListMembershipsResponse>('listMemberships', { teamId: equipo.id })
+        trpcQuery<ListMembershipsResponse>('listMemberships', { teamSeasonId: inscripcion.id })
             .then((data) => {
                 if (cancelado) return;
                 // El servidor ordena por apellido; en una lista de plantel se
@@ -76,16 +82,16 @@ export default function EquipoRosterModal({
         return () => {
             cancelado = true;
         };
-    }, [equipo]);
+    }, [inscripcion]);
 
     return (
         <Modal
-            abierto={equipo !== null}
+            abierto={inscripcion !== null}
             onCerrar={onCerrar}
-            titulo={equipo?.name ?? ''}
+            titulo={inscripcion?.team.name ?? ''}
             subtitulo={
-                equipo
-                    ? `${etiquetaCategoria[equipo.category]}${
+                inscripcion
+                    ? `${temporada ? `${temporada} · ` : ''}${etiquetaCategoria[inscripcion.category]}${
                           !cargando && !error
                               ? ` · ${jugadores.length} ${
                                     jugadores.length === 1 ? 'jugador' : 'jugadores'
@@ -123,7 +129,7 @@ export default function EquipoRosterModal({
             {/* ---------- Equipo sin jugadores ---------- */}
             {!cargando && !error && jugadores.length === 0 && (
                 <p className="py-8 text-center text-gray-400">
-                    Este equipo todavía no tiene jugadores registrados.
+                    Este equipo todavía no tiene jugadores registrados en esta temporada.
                 </p>
             )}
 

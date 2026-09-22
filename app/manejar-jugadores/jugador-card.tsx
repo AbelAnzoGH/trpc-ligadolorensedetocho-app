@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import { trpcMutation } from '@/utils/trpc-fetch';
 import { subirImagen } from '@/utils/subir-imagen';
 import type { PlayerPosition } from '@/lib/player-schema';
-import { inputClass, etiquetaCategoria, type Team } from '@/lib/team-ui';
+import { inputClass, etiquetaCategoria } from '@/lib/team-ui';
+import { nombreTemporada, type TeamSeason } from '@/lib/season-ui';
 import {
     camposEstadistica,
     type Player,
@@ -18,8 +19,9 @@ import SelectorImagen from '@/components/selector-imagen';
 /**
  * Una tarjeta por PERSONA. Adentro se administra:
  *  - sus datos personales (nombre, apellido, edad, altura)
- *  - la lista de equipos en los que juega, cada uno con su jersey,
- *    posiciones, estadísticas y FOTO propios
+ *  - su historial de participaciones (equipo + temporada + categoría), cada
+ *    una con su jersey, posiciones, estadísticas y FOTO propios
+ *  - el alta en un equipo de la temporada de trabajo
  *
  * `onCambio` es la función que recarga la lista completa desde el panel padre.
  * Se llama después de cada operación exitosa para que la pantalla no se
@@ -27,11 +29,18 @@ import SelectorImagen from '@/components/selector-imagen';
  */
 export default function JugadorCard({
     jugador,
-    equipos,
+    inscripciones,
+    seasonId,
+    temporada,
     onCambio,
 }: {
     jugador: Player;
-    equipos: Team[];
+    /** Las inscripciones de la temporada de trabajo. */
+    inscripciones: TeamSeason[];
+    /** Id de la temporada de trabajo (para resaltar sus membresías). */
+    seasonId: string;
+    /** Nombre de la temporada de trabajo, para los textos ("LDT VIII"). */
+    temporada: string;
     onCambio: () => Promise<void>;
 }) {
     const [guardando, setGuardando] = useState(false);
@@ -61,11 +70,23 @@ export default function JugadorCard({
     // de "el usuario no tocó la foto": son dos cosas distintas para el backend.
     const [fotoOriginal, setFotoOriginal] = useState<string | null>(null);
 
-    // Equipos en los que TODAVÍA no juega: no tiene sentido ofrecerle
-    // los que ya están en su lista, el backend lo rechazaría con CONFLICT.
-    const equiposDisponibles = equipos.filter(
-        (e) => !jugador.memberships.some((m) => m.teamId === e.id),
+    // Inscripciones de la temporada de trabajo en las que TODAVÍA no juega.
+    // También se esconden las de una categoría en la que ya juega con otro
+    // equipo esta temporada: el backend las rechazaría (regla de la liga).
+    const categoriasOcupadas = new Set(
+        jugador.memberships
+            .filter((m) => m.teamSeason.season.id === seasonId)
+            .map((m) => m.teamSeason.category),
     );
+    const equiposDisponibles = inscripciones.filter(
+        (i) =>
+            !jugador.memberships.some((m) => m.teamSeasonId === i.id) &&
+            !categoriasOcupadas.has(i.category),
+    );
+
+    // "LDT VII · Patito (Varonil)": así se nombra una membresía en pantalla.
+    const etiquetaMembresia = (m: Membership) =>
+        `${nombreTemporada(m.teamSeason.season.league, m.teamSeason.season.number)} · ${m.teamSeason.team.name}`;
 
     const ejecutar = async (accion: () => Promise<unknown>, exito: string) => {
         setGuardando(true);
@@ -135,7 +156,7 @@ export default function JugadorCard({
             // PASO 2 — Crear la membresía con la dirección que devolvió la subida.
             return trpcMutation('addPlayerToTeam', {
                 playerId: jugador.id,
-                teamId: equipoId,
+                teamSeasonId: equipoId,
                 jerseyNumber: Number(jersey),
                 positions: posiciones,
                 ...foto,
@@ -208,7 +229,7 @@ export default function JugadorCard({
     const onQuitarDeEquipo = (membresia: Membership) =>
         ejecutar(
             () => trpcMutation('removeMembership', { id: membresia.id }),
-            `Quitado de ${membresia.team.name}`,
+            `Quitado de ${membresia.teamSeason.team.name}`,
         );
 
     return (
@@ -279,7 +300,7 @@ export default function JugadorCard({
                             {jugador.age} años · {jugador.height} cm ·{' '}
                             {jugador.memberships.length === 0
                                 ? 'sin equipo'
-                                : `${jugador.memberships.length} ${jugador.memberships.length === 1 ? 'equipo' : 'equipos'}`}
+                                : `${jugador.memberships.length} ${jugador.memberships.length === 1 ? 'participación' : 'participaciones'}`}
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -319,9 +340,9 @@ export default function JugadorCard({
                             className="space-y-4 rounded-md border border-pink-500/40 bg-gray-950/60 p-4"
                         >
                             <p className="font-semibold text-white">
-                                {membresia.team.name}{' '}
+                                {etiquetaMembresia(membresia)}{' '}
                                 <span className="text-sm font-normal text-gray-400">
-                                    ({etiquetaCategoria[membresia.team.category]})
+                                    ({etiquetaCategoria[membresia.teamSeason.category]})
                                 </span>
                             </p>
 
@@ -365,7 +386,7 @@ export default function JugadorCard({
 
                             <div className="flex flex-col gap-2">
                                 <label className="text-sm text-gray-300">
-                                    Estadísticas en este equipo
+                                    Estadísticas en este equipo, esta temporada
                                 </label>
                                 <div className="grid gap-3 sm:grid-cols-3">
                                     {camposEstadistica.map((campo) => (
@@ -432,7 +453,11 @@ export default function JugadorCard({
                         /* ---- Vista compacta de la membresía ---- */
                         <div
                             key={membresia.id}
-                            className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-gray-800 bg-gray-950/40 p-3"
+                            // Las membresías de OTRAS temporadas son historial:
+                            // se ven atenuadas para no confundirlas con las actuales.
+                            className={`flex flex-wrap items-center justify-between gap-3 rounded-md border border-gray-800 bg-gray-950/40 p-3 ${
+                                membresia.teamSeason.season.id === seasonId ? '' : 'opacity-60'
+                            }`}
                         >
                             <div className="flex min-w-0 items-center gap-3">
                                 <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-950/60">
@@ -453,9 +478,9 @@ export default function JugadorCard({
                                         <span className="font-mono text-pink-400">
                                             #{membresia.jerseyNumber}
                                         </span>{' '}
-                                        <span className="font-semibold">{membresia.team.name}</span>{' '}
+                                        <span className="font-semibold">{etiquetaMembresia(membresia)}</span>{' '}
                                         <span className="text-sm text-gray-400">
-                                            ({etiquetaCategoria[membresia.team.category]})
+                                            ({etiquetaCategoria[membresia.teamSeason.category]})
                                         </span>{' '}
                                         <span className="text-sm text-gray-500">
                                             · {membresia.positions.join(' / ')}
@@ -502,16 +527,16 @@ export default function JugadorCard({
                 >
                     <div className="grid gap-3 sm:grid-cols-2">
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm text-gray-300">Equipo</label>
+                            <label className="text-sm text-gray-300">Equipo en {temporada}</label>
                             <select
                                 value={equipoId}
                                 onChange={(e) => setEquipoId(e.target.value)}
                                 className={inputClass}
                             >
                                 <option value="">Selecciona un equipo</option>
-                                {equiposDisponibles.map((equipo) => (
-                                    <option key={equipo.id} value={equipo.id}>
-                                        {equipo.name} ({etiquetaCategoria[equipo.category]})
+                                {equiposDisponibles.map((inscripcion) => (
+                                    <option key={inscripcion.id} value={inscripcion.id}>
+                                        {inscripcion.team.name} ({etiquetaCategoria[inscripcion.category]})
                                     </option>
                                 ))}
                             </select>
@@ -569,7 +594,7 @@ export default function JugadorCard({
                         onClick={() => setAgregandoEquipo(true)}
                         className="text-sm font-semibold text-pink-500 hover:text-pink-400"
                     >
-                        + Agregar a un equipo
+                        + Agregar a un equipo de {temporada}
                     </button>
                 )
             )}

@@ -1,5 +1,6 @@
 import type { PlayerPosition } from '@/lib/player-schema';
 import type { TeamCategory } from '@/lib/team-schema';
+import type { SeasonStatus } from '@/lib/season-schema';
 
 /**
  * Piezas compartidas por las pantallas de jugadores.
@@ -7,9 +8,22 @@ import type { TeamCategory } from '@/lib/team-schema';
  * si cambias el `select` de allá, actualiza esto también.
  */
 
+/** La inscripción a la que pertenece una membresía, con su equipo y temporada. */
+export type TeamSeasonRef = {
+    id: string;
+    category: TeamCategory;
+    team: { id: string; name: string; logoUrl: string | null };
+    season: {
+        id: string;
+        number: number;
+        status: SeasonStatus;
+        league: { id: string; name: string; slug: string };
+    };
+};
+
 export type Membership = {
     id: string;
-    teamId: string;
+    teamSeasonId: string;
     jerseyNumber: number;
     positions: PlayerPosition[];
     /** Foto con este uniforme, o null si no tiene. */
@@ -20,7 +34,7 @@ export type Membership = {
     safeties: number;
     gamesPlayed: number;
     availableForPlayoffs: boolean;
-    team: { id: string; name: string; category: TeamCategory };
+    teamSeason: TeamSeasonRef;
 };
 
 export type Player = {
@@ -38,7 +52,20 @@ export type ListPlayersResponse = {
     data: { players: Player[] };
 };
 
-export type PlayerResponse = { status: string; data: { player: Player } };
+/** Suma de TODAS sus membresías: su carrera completa, en todas las ligas. */
+export type Carrera = {
+    /** Temporadas distintas en las que jugó. */
+    temporadas: number;
+    /** Membresías: varonil y mixto en la misma temporada cuentan dos. */
+    participaciones: number;
+    touchdowns: number;
+    interceptions: number;
+    touchdownPasses: number;
+    safeties: number;
+    gamesPlayed: number;
+};
+
+export type PlayerResponse = { status: string; data: { player: Player; carrera: Carrera } };
 export type MembershipResponse = { status: string; data: { membership: Membership } };
 
 /**

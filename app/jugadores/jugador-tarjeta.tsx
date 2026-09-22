@@ -12,7 +12,9 @@ import { camposEstadistica, type MembershipConJugador, type CampoEstadistica } f
  * la rejilla no quede con huecos.
  */
 export default function JugadorTarjeta({ membresia }: { membresia: MembershipConJugador }) {
-    const { player: jugador, team: equipo } = membresia;
+    const { player: jugador } = membresia;
+    // Nombre y logo son del equipo (permanentes); la categoría es de la inscripción.
+    const equipo = membresia.teamSeason.team;
     const iniciales = `${jugador.name[0] ?? ''}${jugador.lastName[0] ?? ''}`.toUpperCase();
 
     return (
@@ -65,7 +67,7 @@ export default function JugadorTarjeta({ membresia }: { membresia: MembershipCon
                 </div>
 
                 <p className="text-xs uppercase tracking-wide text-gray-500">
-                    {etiquetaCategoria[equipo.category]} · {jugador.age} años · {jugador.height} cm
+                    {etiquetaCategoria[membresia.teamSeason.category]} · {jugador.age} años · {jugador.height} cm
                 </p>
 
                 <div className="flex flex-wrap gap-1.5">
