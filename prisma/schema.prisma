@@ -4,8 +4,10 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
+  provider        = "prisma-client-js"
+  output          = "../app/generated/prisma"
+  // partialIndexes: deja declarar índices con WHERE (ver Season).
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -106,12 +108,13 @@ model Season {
 
   // Una liga no puede tener dos "temporada 7".
   @@unique([leagueId, number])
-  // OJO: "máximo UNA temporada activa por liga" NO está aquí. Es un índice
-  // único parcial escrito a mano en la migración agregar_ligas_y_temporadas:
-  //   CREATE UNIQUE INDEX "seasons_una_activa_por_liga"
-  //     ON "seasons"("leagueId") WHERE "status" = 'activa';
-  // Si una `prisma migrate dev` futura propone DROP de ese índice, borra esa
-  // línea del .sql antes de aplicarlo.
+  // Máximo UNA temporada activa por liga. Índice único PARCIAL: solo indexa
+  // las filas con status = 'activa'. Se creó a mano en la migración
+  // agregar_ligas_y_temporadas; declararlo aquí (con el mismo nombre en `map`)
+  // evita que `prisma migrate dev` proponga borrarlo.
+  // No usar findUnique por leagueId: Prisma lo ofrece, pero NO es único
+  // entre temporadas cerradas.
+  @@unique([leagueId], where: raw("\"status\" = 'activa'"), map: "seasons_una_activa_por_liga")
 
   @@map(name: "seasons")
 }
