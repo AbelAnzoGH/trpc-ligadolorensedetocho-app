@@ -114,6 +114,7 @@ model Season {
   categories TeamCategoryEnumType[] @default([])
 
   teamSeasons TeamSeason[]
+  games       Game[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -167,6 +168,11 @@ model TeamSeason {
   pointsAgainst Int @default(0) // desempate de la tabla
 
   memberships TeamMembership[]
+
+  // Sus partidos. Un partido apunta DOS veces a TeamSeason (local y
+  // visitante), por eso cada relación lleva nombre: así Prisma sabe cuál es cuál.
+  homeGames Game[] @relation("HomeGames")
+  awayGames Game[] @relation("AwayGames")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -258,4 +264,105 @@ enum PlayerPositionEnumType {
   CB // Esquinero
   S  // Safety
   DB // Defensivo
+}
+
+// Una SEDE: "Unidad Deportiva Miguel Hidalgo y Costilla". Permanente, como
+// League y Team: se registra una vez y los partidos apuntan a ella, así no
+// hay "Unidad Deportiva" y "U. Deportiva" como dos lugares distintos.
+model Venue {
+  id      String  @id @default(uuid())
+  name    String  @unique @db.VarChar(255)
+  address String? @db.VarChar(500)
+
+  games Game[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map(name: "venues")
+}
+
+// Un PARTIDO de una temporada. Enfrenta a dos INSCRIPCIONES (TeamSeason), no
+// a dos Team: "Patito varonil libre de LDT VII" contra "Halcones varonil
+// libre de LDT VII". Así el partido ya sabe su temporada y su categoría.
+//
+// Reglas que NO puede expresar este archivo y hace cumplir el servidor
+// (game-controller.ts): las dos inscripciones son de `seasonId` y de la misma
+// categoría; 'regular' exige jornada; uno finalizado no se borra (solo se
+// corrige su marcador).
+// Y tres que sí viven en la base, como CHECK escritos a mano en la migración
+// partidos_y_sedes (Prisma no los genera ni los borra):
+//   games_equipos_distintos        → nadie juega contra sí mismo
+//   games_marcador_no_negativo     → marcadores >= 0
+//   games_finalizado_con_marcador  → 'finalizado' ⇔ los dos marcadores con valor
+model Game {
+  id String @id @default(uuid())
+
+  // Se guarda aunque se podría deducir de las inscripciones: "los partidos de
+  // LDT VII" es LA consulta de esta tabla. La categoría NO se guarda: se filtra
+  // con homeTeamSeason: { category }, y así no hay un dato que pueda
+  // contradecir al de la inscripción.
+  seasonId String
+  season   Season @relation(fields: [seasonId], references: [id], onDelete: Restrict)
+
+  // Restrict en todo: un partido es historial. No se puede borrar una
+  // temporada, una inscripción ni una sede que ya tenga partidos.
+  homeTeamSeasonId String
+  awayTeamSeasonId String
+  homeTeamSeason   TeamSeason @relation("HomeGames", fields: [homeTeamSeasonId], references: [id], onDelete: Restrict)
+  awayTeamSeason   TeamSeason @relation("AwayGames", fields: [awayTeamSeasonId], references: [id], onDelete: Restrict)
+
+  phase  GamePhaseEnumType  @default(regular)
+  // Jornada. Obligatoria en 'regular'; un amistoso o un partido de
+  // pretemporada puede no tenerla, y en playoffs la fase ya lo dice todo.
+  round  Int?
+  status GameStatusEnumType @default(programado)
+
+  // Fecha y hora juntas. Postgres la guarda en UTC; se muestra en la hora de
+  // México en pantalla. Reprogramar = cambiar este valor.
+  scheduledAt DateTime
+
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  field   Int?   // número de campo dentro de la sede (libre)
+
+  // null mientras no se juega. 'finalizado' ⇔ los dos tienen valor.
+  homeScore Int?
+  awayScore Int?
+  // Ganado por default: el que no llegó queda con 0 y el otro con 36.
+  // Es un marcador más, así la tabla de posiciones lo cuenta sin casos especiales.
+  isForfeit Boolean @default(false)
+
+  notes String? @db.VarChar(500) // "suspendido por lluvia"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([seasonId, round])
+  @@index([homeTeamSeasonId])
+  @@index([awayTeamSeasonId])
+  @@index([venueId])
+
+  @@map(name: "games")
+}
+
+// Qué tipo de partido es. La tabla de posiciones (próximo sprint) solo contará
+// los 'regular'; los demás son partidos "sueltos" que no afectan la tabla.
+enum GamePhaseEnumType {
+  pretemporada
+  amistoso
+  regular
+  cuartos
+  semifinal
+  tercer_lugar
+  final
+}
+
+//   programado → tiene fecha, todavía no se juega (reprogramar = cambiar la fecha)
+//   finalizado → tiene marcador; ya no se borra, solo se corrige el marcador
+//   suspendido → no se jugó (lluvia, ninguno de los dos llegó); espera fecha nueva
+enum GameStatusEnumType {
+  programado
+  finalizado
+  suspendido
 }
