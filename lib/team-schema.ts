@@ -2,10 +2,19 @@ import * as z from "zod";
 
 // Las categorías válidas. Si el día de mañana se agrega una nueva
 // (por ejemplo "infantil"), se agrega aquí Y en el enum de prisma/schema.prisma.
-export const teamCategories = ["femenil", "varonil", "mixto"] as const;
+// Van en el MISMO orden que el enum de Postgres: así los selects y las
+// casillas de la pantalla salen en el orden en que la base las ordena.
+// Qué categorías se juegan en cada temporada lo decide Season.categories.
+export const teamCategories = [
+  "femenil_libre",
+  "varonil_libre",
+  "mixto",
+  "femenil_u16",
+  "mixto_u18",
+] as const;
 
 export const teamCategorySchema = z.enum(teamCategories, {
-  error: "La categoría debe ser femenil, varonil o mixto",
+  error: "La categoría no es válida",
 });
 
 /**

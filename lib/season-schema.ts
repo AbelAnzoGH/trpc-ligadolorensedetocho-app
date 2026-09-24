@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { teamCategorySchema } from "@/lib/team-schema";
+import { teamCategories, teamCategorySchema } from "@/lib/team-schema";
 
 /**
  * Validación de todo lo que tiene que ver con LIGAS, TEMPORADAS e
@@ -55,6 +55,14 @@ export const updateLeagueSchema = z.object({
 // TEMPORADAS
 // ---------------------------------------------------------------------------
 
+// Las categorías que se juegan en una temporada. El transform hace dos cosas
+// de una vez: quita repetidos (si llegara ["mixto", "mixto"]) y las deja en el
+// orden oficial de teamCategories, sin importar en qué orden se marcaron.
+const seasonCategoriesSchema = z
+    .array(teamCategorySchema, { error: "Las categorías deben ser una lista" })
+    .min(1, { error: "Elige al menos una categoría para la temporada" })
+    .transform((elegidas) => teamCategories.filter((c) => elegidas.includes(c)));
+
 export const createSeasonSchema = z.object({
     leagueId: idSchema("de la liga"),
 
@@ -67,6 +75,9 @@ export const createSeasonSchema = z.object({
     // Por defecto nace en 'inscripciones': se puede preparar sin volverse la activa.
     status: seasonStatusSchema.optional(),
 
+    // Obligatorias al crear: el admin decide qué categorías se juegan.
+    categories: seasonCategoriesSchema,
+
     // z.date() funciona porque tRPC usa SuperJSON: las fechas viajan como Date.
     startDate: z.date().nullable().optional(),
     endDate: z.date().nullable().optional(),
@@ -77,6 +88,10 @@ export const updateSeasonSchema = z.object({
     // El número y la liga NO se editan: definen la identidad de la temporada
     // (y su URL). Si se capturó mal, se borra (vacía) y se crea otra.
     status: seasonStatusSchema.optional(),
+    // La lista COMPLETA de categorías que quedan (no "agrega esta"): lo que
+    // falte respecto a la actual se quita, y el servidor revisa que lo que se
+    // quita no tenga equipos inscritos.
+    categories: seasonCategoriesSchema.optional(),
     startDate: z.date().nullable().optional(),
     endDate: z.date().nullable().optional(),
 });

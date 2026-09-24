@@ -76,6 +76,23 @@ export const asegurarTemporadaAbierta = (season: {
 };
 
 /**
+ * Un equipo solo se inscribe en una categoría que la temporada tenga
+ * habilitada (Season.categories). Se usa al inscribir, al crear un equipo
+ * con inscripción y al cambiarle la categoría a una inscripción.
+ */
+export const asegurarCategoriaHabilitada = (
+    season: { categories: TeamCategory[]; number: number; league: { name: string } },
+    category: TeamCategory,
+) => {
+    if (!season.categories.includes(category)) {
+        throw new TRPCError({
+            code: 'CONFLICT',
+            message: `${nombreTemporada(season.league, season.number)} no tiene la categoría ${etiquetaCategoria[category]}. Agrégala a la temporada primero.`,
+        });
+    }
+};
+
+/**
  * REGLA DE LA LIGA: una persona no puede jugar en dos equipos de la MISMA
  * categoría dentro de la MISMA temporada. (Sí puede jugar varonil y mixto a
  * la vez, y sí puede jugar en otra liga con otro equipo.)

@@ -64,10 +64,16 @@ model Team {
   @@map(name: "teams")
 }
 
+// Las categorías de la liga. OJO con el ORDEN: es el de Postgres, y define
+// cómo se ordena `orderBy: { category: 'asc' }`. Los tres primeros existían
+// antes con otro nombre (femenil, varonil) y se renombraron en la migración
+// categorias_por_temporada; los dos últimos se agregaron al final.
 enum TeamCategoryEnumType {
-  femenil
-  varonil
+  femenil_libre
+  varonil_libre
   mixto
+  femenil_u16
+  mixto_u18
 }
 
 // La LIGA: LDT, LDT SHADOWS, LDT INTERPREPAS. Permanente, como Team y Player.
@@ -100,6 +106,12 @@ model Season {
 
   startDate DateTime?
   endDate   DateTime?
+
+  // Las categorías que se juegan ESTA temporada. Las elige el admin al crearla
+  // y puede agregar o quitar después (quitar solo si no hay equipos inscritos
+  // en esa categoría; lo revisa season-controller). Un equipo solo puede
+  // inscribirse en una categoría que esté aquí.
+  categories TeamCategoryEnumType[] @default([])
 
   teamSeasons TeamSeason[]
 

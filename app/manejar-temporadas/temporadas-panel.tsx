@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { trpcQuery, trpcMutation } from '@/utils/trpc-fetch';
 import { useLigas } from '@/utils/use-ligas';
 import SelectorTemporada from '@/components/selector-temporada';
-import { teamCategories, type TeamCategory } from '@/lib/team-schema';
+import type { TeamCategory } from '@/lib/team-schema';
 import { seasonStatuses, type SeasonStatus } from '@/lib/season-schema';
 import { etiquetaCategoria, inputClass, type Team, type ListTeamsResponse } from '@/lib/team-ui';
 import {
@@ -19,6 +19,7 @@ import {
     type ListTeamSeasonsResponse,
 } from '@/lib/season-ui';
 import InscripcionFila from './inscripcion-fila';
+import CategoriasTemporada from './categorias-temporada';
 
 const botonPrimario =
     'rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-5 py-2 font-semibold text-white transition duration-300 hover:bg-linear-to-l disabled:opacity-50';
@@ -81,6 +82,8 @@ export default function TemporadasPanel() {
     const [temporadaLiga, setTemporadaLiga] = useState('');
     const [temporadaNumero, setTemporadaNumero] = useState('');
     const [temporadaEstado, setTemporadaEstado] = useState<SeasonStatus>('inscripciones');
+    // Empieza vacía a propósito: el admin elige qué categorías se juegan.
+    const [temporadaCategorias, setTemporadaCategorias] = useState<TeamCategory[]>([]);
 
     // Propone el número siguiente al elegir la liga: si la última es la VII,
     // lo normal es crear la VIII. El admin lo puede cambiar.
@@ -98,6 +101,10 @@ export default function TemporadasPanel() {
             toast.error('Elige la liga y el número de temporada');
             return;
         }
+        if (temporadaCategorias.length === 0) {
+            toast.error('Elige al menos una categoría');
+            return;
+        }
         const numero = Number(temporadaNumero);
         const ok = await ejecutar(
             () =>
@@ -105,6 +112,7 @@ export default function TemporadasPanel() {
                     leagueId: liga.id,
                     number: numero,
                     status: temporadaEstado,
+                    categories: temporadaCategorias,
                 }),
             `${nombreTemporada(liga, numero)} creada`,
         );
@@ -112,11 +120,20 @@ export default function TemporadasPanel() {
             setTemporadaLiga('');
             setTemporadaNumero('');
             setTemporadaEstado('inscripciones');
+            setTemporadaCategorias([]);
         }
     };
 
     const onCambiarEstado = (id: string, status: SeasonStatus, nombre: string) =>
         ejecutar(() => trpcMutation('updateSeason', { id, status }), `${nombre}: ${etiquetaEstado[status]}`);
+
+    const onCambiarCategorias = (id: string, categories: TeamCategory[], nombre: string) => {
+        if (categories.length === 0) {
+            toast.error('La temporada debe tener al menos una categoría');
+            return;
+        }
+        return ejecutar(() => trpcMutation('updateSeason', { id, categories }), `${nombre}: categorías actualizadas`);
+    };
 
     const onEliminarTemporada = (id: string, nombre: string) =>
         ejecutar(() => trpcMutation('deleteSeason', { id }), `${nombre} eliminada`);
@@ -126,7 +143,7 @@ export default function TemporadasPanel() {
     const [inscripciones, setInscripciones] = useState<TeamSeason[]>([]);
     const [cargandoInscripciones, setCargandoInscripciones] = useState(false);
     const [inscribirEquipo, setInscribirEquipo] = useState('');
-    const [inscribirCategoria, setInscribirCategoria] = useState<TeamCategory>('varonil');
+    const [inscribirCategoria, setInscribirCategoria] = useState<TeamCategory | ''>('');
 
     const cargarInscripciones = useCallback(async () => {
         if (!seasonId) {
@@ -154,8 +171,8 @@ export default function TemporadasPanel() {
 
     const onInscribir = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!inscribirEquipo) {
-            toast.error('Elige un equipo');
+        if (!inscribirEquipo || !categoriaInscripcion) {
+            toast.error('Elige un equipo y una categoría');
             return;
         }
         const ok = await ejecutar(
@@ -163,7 +180,7 @@ export default function TemporadasPanel() {
                 trpcMutation('enrollTeam', {
                     seasonId,
                     teamId: inscribirEquipo,
-                    category: inscribirCategoria,
+                    category: categoriaInscripcion,
                 }),
             'Equipo inscrito',
             cargarInscripciones,
@@ -175,6 +192,16 @@ export default function TemporadasPanel() {
     if (error) return <p className="text-red-400">Error: {error}</p>;
 
     const temporadaCerrada = elegida?.temporada.status === 'cerrada';
+
+    // Solo se ofrecen las categorías que la temporada elegida tiene. Si la
+    // que estaba seleccionada no existe en esta temporada (se cambió de
+    // temporada), se usa la primera disponible. Es un valor DERIVADO: se
+    // calcula en cada render en vez de "sincronizarlo" con un useEffect.
+    const categoriasTemporada = elegida?.temporada.categories ?? [];
+    const categoriaInscripcion: TeamCategory | '' =
+        inscribirCategoria && categoriasTemporada.includes(inscribirCategoria)
+            ? inscribirCategoria
+            : (categoriasTemporada[0] ?? '');
 
     return (
         <div className="space-y-10">
@@ -261,6 +288,14 @@ export default function TemporadasPanel() {
                             className={`${inputClass} w-24`}
                         />
                     </div>
+                    <div className="flex w-full flex-col gap-1 sm:order-last">
+                        <span className="text-sm text-gray-300">Categorías que se juegan</span>
+                        <CategoriasTemporada
+                            seleccionadas={temporadaCategorias}
+                            onCambiar={setTemporadaCategorias}
+                            deshabilitado={guardando}
+                        />
+                    </div>
                     <div className="flex flex-col gap-1">
                         <label htmlFor="temp-estado" className="text-sm text-gray-300">Estado</label>
                         <select
@@ -336,6 +371,14 @@ export default function TemporadasPanel() {
                                                     </button>
                                                 )}
                                             </span>
+
+                                            <div className="w-full">
+                                                <CategoriasTemporada
+                                                    seleccionadas={s.categories}
+                                                    deshabilitado={guardando || s.status === 'cerrada'}
+                                                    onCambiar={(nuevas) => onCambiarCategorias(s.id, nuevas, nombre)}
+                                                />
+                                            </div>
                                         </li>
                                     );
                                 })}
@@ -384,11 +427,15 @@ export default function TemporadasPanel() {
                             <label htmlFor="insc-categoria" className="text-sm text-gray-300">Categoría</label>
                             <select
                                 id="insc-categoria"
-                                value={inscribirCategoria}
+                                value={categoriaInscripcion}
                                 onChange={(e) => setInscribirCategoria(e.target.value as TeamCategory)}
+                                disabled={categoriasTemporada.length === 0}
                                 className={inputClass}
                             >
-                                {teamCategories.map((c) => (
+                                {categoriasTemporada.length === 0 && (
+                                    <option value="">Sin categorías: agrégalas en la sección 2</option>
+                                )}
+                                {categoriasTemporada.map((c) => (
                                     <option key={c} value={c}>{etiquetaCategoria[c]}</option>
                                 ))}
                             </select>

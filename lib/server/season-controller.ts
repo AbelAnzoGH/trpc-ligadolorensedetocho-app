@@ -5,6 +5,7 @@ import { nombreTemporada } from '@/lib/season-ui';
 import {
     toTRPCError,
     asegurarTemporadaAbierta,
+    asegurarCategoriaHabilitada,
     buscarChoquesDeCategoria,
     mensajeChoques,
 } from '@/lib/server/reglas-inscripcion';
@@ -34,6 +35,7 @@ const seasonSummarySelect = {
     status: true,
     startDate: true,
     endDate: true,
+    categories: true,
     _count: { select: { teamSeasons: true } },
 } as const;
 
@@ -172,6 +174,7 @@ export const getSeasonBySlugHandler = async ({ input }: { input: SeasonBySlugInp
                 status: true,
                 startDate: true,
                 endDate: true,
+                categories: true,
                 league: { select: leagueRefSelect },
                 teamSeasons: { select: teamSeasonSelect, orderBy: teamSeasonOrder },
             },
@@ -213,6 +216,7 @@ export const createSeasonHandler = async ({ input }: { input: CreateSeasonInput 
                 leagueId: input.leagueId,
                 number: input.number,
                 status: input.status ?? 'inscripciones',
+                categories: input.categories,
                 startDate: input.startDate ?? null,
                 endDate: input.endDate ?? null,
             },
@@ -231,12 +235,51 @@ export const updateSeasonHandler = async ({ input }: { input: UpdateSeasonInput 
 
         const existing = await prisma.season.findUnique({
             where: { id },
-            select: { id: true, leagueId: true, status: true },
+            select: {
+                id: true,
+                leagueId: true,
+                status: true,
+                number: true,
+                categories: true,
+                league: { select: { name: true } },
+            },
         });
         if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe esa temporada' });
 
         if (changes.status === 'activa' && existing.status !== 'activa') {
             await asegurarUnicaActiva(existing.leagueId, id);
+        }
+
+        if (changes.categories) {
+            // Una temporada cerrada está congelada. Se mira el estado con el
+            // que QUEDARÍA: si en la misma llamada se reabre, sí se permite.
+            if ((changes.status ?? existing.status) === 'cerrada') {
+                throw new TRPCError({
+                    code: 'CONFLICT',
+                    message: `${nombreTemporada(existing.league, existing.number)} está cerrada: sus categorías ya no se cambian.`,
+                });
+            }
+
+            // Agregar categorías siempre se puede. QUITAR solo si nadie está
+            // inscrito en ella: si no, esas inscripciones quedarían en una
+            // categoría que "no existe" en su temporada.
+            const quitadas = existing.categories.filter((c) => !changes.categories!.includes(c));
+            if (quitadas.length > 0) {
+                const ocupadas = await prisma.teamSeason.groupBy({
+                    by: ['category'],
+                    where: { seasonId: id, category: { in: quitadas } },
+                    _count: { _all: true },
+                });
+                if (ocupadas.length > 0) {
+                    const detalle = ocupadas
+                        .map((o) => `${etiquetaCategoria[o.category]} (${o._count._all} ${o._count._all === 1 ? 'equipo' : 'equipos'})`)
+                        .join(', ');
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: `No se puede quitar: ${detalle}. Da de baja esas inscripciones primero.`,
+                    });
+                }
+            }
         }
 
         const season = await prisma.season.update({ where: { id }, data: changes, select: seasonSummarySelect });
@@ -300,7 +343,7 @@ export const enrollTeamHandler = async ({ input }: { input: EnrollTeamInput }) =
         const [season, team] = await Promise.all([
             prisma.season.findUnique({
                 where: { id: input.seasonId },
-                select: { status: true, number: true, league: { select: { name: true } } },
+                select: { status: true, number: true, categories: true, league: { select: { name: true } } },
             }),
             prisma.team.findUnique({ where: { id: input.teamId }, select: { name: true } }),
         ]);
@@ -308,6 +351,7 @@ export const enrollTeamHandler = async ({ input }: { input: EnrollTeamInput }) =
         if (!season) throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe esa temporada' });
         if (!team) throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe ese equipo' });
         asegurarTemporadaAbierta(season);
+        asegurarCategoriaHabilitada(season, input.category);
 
         const yaInscrito = await prisma.teamSeason.findUnique({
             where: {
@@ -346,12 +390,15 @@ export const updateTeamSeasonHandler = async ({ input }: { input: UpdateTeamSeas
                 teamId: true,
                 category: true,
                 team: { select: { name: true } },
+                season: { select: { number: true, categories: true, league: { select: { name: true } } } },
                 _count: { select: { memberships: true } },
             },
         });
         if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe esa inscripción' });
 
         if (changes.category && changes.category !== existing.category) {
+            asegurarCategoriaHabilitada(existing.season, changes.category);
+
             // Cambiar la categoría con jugadores adentro podría romper la regla
             // "no dos equipos de la misma categoría" sin que nadie se entere.
             if (existing._count.memberships > 0) {

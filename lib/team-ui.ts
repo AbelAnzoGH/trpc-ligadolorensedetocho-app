@@ -36,9 +36,11 @@ export type TeamResponse = {
 
 /** Cómo se escribe cada categoría en pantalla (el valor de la BD va en minúsculas). */
 export const etiquetaCategoria: Record<TeamCategory, string> = {
-    femenil: 'Femenil',
-    varonil: 'Varonil',
+    femenil_libre: 'Femenil Libre',
+    varonil_libre: 'Varonil Libre',
     mixto: 'Mixto',
+    femenil_u16: 'Femenil Under16',
+    mixto_u18: 'Mixto Under18',
 };
 
 /** Clases de Tailwind para inputs y selects sobre el fondo oscuro del sitio. */

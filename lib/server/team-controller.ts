@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@/lib/prisma';
 import { almacenamiento } from '@/lib/server/storage';
-import { asegurarTemporadaAbierta } from '@/lib/server/reglas-inscripcion';
+import { asegurarTemporadaAbierta, asegurarCategoriaHabilitada } from '@/lib/server/reglas-inscripcion';
 import type {
     CreateTeamInput,
     UpdateTeamInput,
@@ -111,12 +111,13 @@ export const createTeamHandler = async ({ input }: { input: CreateTeamInput }) =
         if (input.inscripcion) {
             const season = await prisma.season.findUnique({
                 where: { id: input.inscripcion.seasonId },
-                select: { status: true, number: true, league: { select: { name: true } } },
+                select: { status: true, number: true, categories: true, league: { select: { name: true } } },
             });
             if (!season) {
                 throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe esa temporada' });
             }
             asegurarTemporadaAbierta(season);
+            asegurarCategoriaHabilitada(season, input.inscripcion.category);
         }
 
         // Escritura anidada: Prisma crea el equipo y su inscripción en una

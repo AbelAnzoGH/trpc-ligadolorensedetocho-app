@@ -6,7 +6,7 @@ import { trpcQuery, trpcMutation } from '@/utils/trpc-fetch';
 import { subirImagen } from '@/utils/subir-imagen';
 import { useLigas } from '@/utils/use-ligas';
 import SelectorTemporada from '@/components/selector-temporada';
-import { teamCategories, type TeamCategory } from '@/lib/team-schema';
+import type { TeamCategory } from '@/lib/team-schema';
 import {
     etiquetaCategoria,
     inputClass,
@@ -37,9 +37,18 @@ export default function EquiposPanel() {
     const [nombre, setNombre] = useState('');
 
     // --- Inscripción opcional al crear (solo en modo "nuevo") ---
-    const { ligas, seasonId, setSeasonId } = useLigas();
+    const { ligas, seasonId, setSeasonId, elegida } = useLigas();
     const [inscribir, setInscribir] = useState(true);
-    const [categoria, setCategoria] = useState<TeamCategory>('varonil');
+    const [categoriaElegida, setCategoria] = useState<TeamCategory | ''>('');
+
+    // Solo las categorías de la temporada elegida (valor derivado, igual que
+    // en /manejar-temporadas): si la elegida no existe en esta temporada,
+    // se usa la primera que sí.
+    const categoriasTemporada = elegida?.temporada.categories ?? [];
+    const categoria: TeamCategory | '' =
+        categoriaElegida && categoriasTemporada.includes(categoriaElegida)
+            ? categoriaElegida
+            : (categoriasTemporada[0] ?? '');
 
     // --- Estado del logo ---
     // archivoLogo  : lo que el usuario acaba de elegir y aún NO se ha subido
@@ -110,7 +119,11 @@ export default function EquiposPanel() {
                 });
                 toast.success('Equipo actualizado');
             } else {
-                const conInscripcion = inscribir && seasonId;
+                if (inscribir && seasonId && !categoria) {
+                    toast.error('Esa temporada no tiene categorías. Agrégalas en /manejar-temporadas.');
+                    return;
+                }
+                const conInscripcion = inscribir && seasonId && categoria;
                 await trpcMutation<TeamResponse>('createTeam', {
                     name: nombre.trim(),
                     ...logo,
@@ -200,9 +213,13 @@ export default function EquiposPanel() {
                                         id="categoria"
                                         value={categoria}
                                         onChange={(e) => setCategoria(e.target.value as TeamCategory)}
+                                        disabled={categoriasTemporada.length === 0}
                                         className={inputClass}
                                     >
-                                        {teamCategories.map((c) => (
+                                        {categoriasTemporada.length === 0 && (
+                                            <option value="">Sin categorías</option>
+                                        )}
+                                        {categoriasTemporada.map((c) => (
                                             <option key={c} value={c}>{etiquetaCategoria[c]}</option>
                                         ))}
                                     </select>

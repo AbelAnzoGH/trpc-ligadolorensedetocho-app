@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { trpcQuery } from '@/utils/trpc-fetch';
 import { useLigas } from '@/utils/use-ligas';
 import SelectorTemporada from '@/components/selector-temporada';
-import { teamCategories, type TeamCategory } from '@/lib/team-schema';
+import type { TeamCategory } from '@/lib/team-schema';
 import { etiquetaCategoria, inputClass } from '@/lib/team-ui';
 import {
     nombreTemporada,
@@ -31,8 +31,13 @@ export default function EquiposTabla() {
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Filtro del listado ('' = todas las categorías)
-    const [filtro, setFiltro] = useState<TeamCategory | ''>('');
+    // Filtro del listado ('' = todas las categorías). Solo se ofrecen las
+    // categorías de la temporada elegida; si el filtro guardado no existe en
+    // ella (se cambió de temporada), cuenta como "Todas".
+    const [filtroElegido, setFiltro] = useState<TeamCategory | ''>('');
+    const categoriasTemporada = elegida?.temporada.categories ?? [];
+    const filtro: TeamCategory | '' =
+        filtroElegido && categoriasTemporada.includes(filtroElegido) ? filtroElegido : '';
 
     // Inscripción cuyo plantel se está viendo. null = ningún modal abierto.
     // Se guarda COMPLETA y no solo su id, para que el modal pueda pintar el
@@ -84,7 +89,7 @@ export default function EquiposTabla() {
                         className={inputClass}
                     >
                         <option value="">Todas</option>
-                        {teamCategories.map((c) => (
+                        {categoriasTemporada.map((c) => (
                             <option key={c} value={c}>{etiquetaCategoria[c]}</option>
                         ))}
                     </select>

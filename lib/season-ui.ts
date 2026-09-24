@@ -65,6 +65,8 @@ export type SeasonSummary = {
     status: SeasonStatus;
     startDate: string | null;
     endDate: string | null;
+    /** Las categorías que se juegan esta temporada, en el orden de teamCategories. */
+    categories: TeamCategory[];
     _count: { teamSeasons: number };
 };
 
