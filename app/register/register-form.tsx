@@ -3,7 +3,6 @@
 import { useForm, SubmitHandler, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { CreateUserInput, createUserSchema } from '@/lib/user-schema';
@@ -34,7 +33,7 @@ export default function RegisterForm() {
             console.log('Error message:', error.message);
         },
         onSuccess() {
-            toast.success('registered successfully');
+            toast.success('Cuenta creada. Ya puedes iniciar sesión.');
             router.push('/login');
         },
     });
@@ -45,27 +44,15 @@ export default function RegisterForm() {
 
     return (
         <FormProvider {...methods}>
-            <form
-                onSubmit={handleSubmit(onSubmitHandler)}
-                className='max-w-md w-full mx-auto overflow-hidden shadow-lg bg-gray-900 text-black rounded-2xl p-8 space-y-5'
-            >
-                <FormInput label='Full Name' name='name' />
-                <FormInput label='Email' name='email' type='email' />
-                <FormInput label='Password' name='password' type='password' />
-                <FormInput
-                    label='Confirm Password'
-                    name='passwordConfirm'
-                    type='password'
-                />
-                <span className='block text-white'>
-                    Already have an account?{' '}
-                    <Link href='/login' className='bg-gradient-to-r from-pink-500 to-yellow-500 bg-clip-text text-transparent fonse'>
-                        Login Here
-                    </Link>
-                </span>
-                <LoadingButton loading={submitting} textColor='text-white'>
-                    Register
-                </LoadingButton>
+            {/* La tarjeta y el enlace a "Inicia sesión" los pone la página
+                (components/acceso.tsx); el formulario solo lleva los campos. */}
+            <form onSubmit={handleSubmit(onSubmitHandler)} className='space-y-5'>
+                <FormInput label='Nombre completo' name='name' />
+                <FormInput label='Correo electrónico' name='email' type='email' />
+                <FormInput label='Contraseña' name='password' type='password' />
+                <FormInput label='Confirma tu contraseña' name='passwordConfirm' type='password' />
+
+                <LoadingButton loading={submitting}>Crear cuenta</LoadingButton>
             </form>
         </FormProvider>
     );

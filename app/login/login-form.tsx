@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { LoginUserInput, loginUserSchema } from '@/lib/user-schema';
 import FormInput from '@/components/form-input';
 import { LoadingButton } from '@/components/loading-button';
+import { claseEnlace } from '@/components/ui/enlace';
 import { trpc } from '@/utils/trpc';
 import queryClient from '@/utils/query-client';
 import toast from 'react-hot-toast';
@@ -35,7 +36,7 @@ export default function LoginForm() {
             reset({ password: '' });
         },
         onSuccess() {
-            toast.success('login successfully');
+            toast.success('Sesión iniciada');
             queryClient.clear();
             router.push('/');
             router.refresh();
@@ -48,27 +49,21 @@ export default function LoginForm() {
 
     return (
         <FormProvider {...methods}>
-            <form
-                onSubmit={handleSubmit(onSubmitHandler)}
-                className='max-w-md w-full mx-auto overflow-hidden shadow-lg bg-gray-900 rounded-2xl p-8 space-y-5 text-black'
-            >
-                <FormInput label='Email' name='email' type='email' />
-                <FormInput label='Password' name='password' type='password' />
+            {/* La tarjeta y el enlace a "Regístrate" los pone la página
+                (components/acceso.tsx); el formulario solo lleva los campos. */}
+            <form onSubmit={handleSubmit(onSubmitHandler)} className='space-y-5'>
+                <FormInput label='Correo electrónico' name='email' type='email' />
+                <FormInput label='Contraseña' name='password' type='password' />
 
-                <div className='text-center text-gray-200'>
-                    <Link href='#' className=''>
-                        Forgot Password?
+                {/* FUTURO: todavía no existe la recuperación de contraseña;
+                    el enlace apunta a '#' como antes. */}
+                <div className='text-right'>
+                    <Link href='#' className={`${claseEnlace} text-meta`}>
+                        ¿Olvidaste tu contraseña?
                     </Link>
                 </div>
-                <LoadingButton loading={submitting} textColor='text-white'>
-                    Login
-                </LoadingButton>
-                <span className='block'>
-                    Need an account?{' '}
-                    <Link href='/register' className='bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text text-transparent font-semibold'>
-                        Sign Up Here
-                    </Link>
-                </span>
+
+                <LoadingButton loading={submitting}>Iniciar sesión</LoadingButton>
             </form>
         </FormProvider>
     );
