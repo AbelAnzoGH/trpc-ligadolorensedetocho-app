@@ -2,6 +2,7 @@ import authRouter from "@/lib/server/auth-route";
 import teamRouter from "@/lib/server/team-route";
 import playerRouter from "@/lib/server/player-route";
 import seasonRouter from "@/lib/server/season-route";
+import gameRouter from "@/lib/server/game-route";
 import { getUserHandler } from "@/lib/server/user-controller";
 import { createContext } from "@/utils/trpc-context";
 import { protectedProcedure, t } from "@/utils/trpc-server";
@@ -26,7 +27,8 @@ export const appRouter = t.mergeRouters(
     userRouter,
     teamRouter,
     playerRouter,
-    seasonRouter
+    seasonRouter,
+    gameRouter
 )
 
 export const createCaller = t.createCallerFactory(appRouter)

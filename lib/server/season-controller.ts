@@ -391,13 +391,23 @@ export const updateTeamSeasonHandler = async ({ input }: { input: UpdateTeamSeas
                 category: true,
                 team: { select: { name: true } },
                 season: { select: { number: true, categories: true, league: { select: { name: true } } } },
-                _count: { select: { memberships: true } },
+                _count: { select: { memberships: true, homeGames: true, awayGames: true } },
             },
         });
         if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe esa inscripción' });
 
         if (changes.category && changes.category !== existing.category) {
             asegurarCategoriaHabilitada(existing.season, changes.category);
+
+            // Sus partidos son contra equipos de SU categoría: cambiarla
+            // dejaría esos partidos como "varonil contra mixto".
+            const partidos = existing._count.homeGames + existing._count.awayGames;
+            if (partidos > 0) {
+                throw new TRPCError({
+                    code: 'CONFLICT',
+                    message: `No se puede cambiar la categoría: ${existing.team.name} ya tiene ${partidos} ${partidos === 1 ? 'partido' : 'partidos'} en esta temporada.`,
+                });
+            }
 
             // Cambiar la categoría con jugadores adentro podría romper la regla
             // "no dos equipos de la misma categoría" sin que nadie se entere.
@@ -441,9 +451,19 @@ export const removeTeamSeasonHandler = async ({ input }: { input: TeamSeasonIdIn
     try {
         const existing = await prisma.teamSeason.findUnique({
             where: { id: input.id },
-            select: { id: true, _count: { select: { memberships: true } } },
+            select: { id: true, _count: { select: { memberships: true, homeGames: true, awayGames: true } } },
         });
         if (!existing) throw new TRPCError({ code: 'NOT_FOUND', message: 'No existe esa inscripción' });
+
+        // Con partidos, la base ya lo rechaza (onDelete: Restrict); esto
+        // existe para que el mensaje diga POR QUÉ.
+        const partidos = existing._count.homeGames + existing._count.awayGames;
+        if (partidos > 0) {
+            throw new TRPCError({
+                code: 'CONFLICT',
+                message: `No se puede dar de baja: tiene ${partidos} ${partidos === 1 ? 'partido' : 'partidos'} en el rol. Bórralos primero (los finalizados son historial y no se borran).`,
+            });
+        }
 
         const n = existing._count.memberships;
         if (n > 0) {
