@@ -401,8 +401,14 @@ Cuando una tarjeta administra varias cosas (la persona y sus membresías):
 - **Un subformulario abierto** (editar o agregar una membresía) usa `rounded-item border border-borde-fuerte bg-canvas p-4`: el borde fuerte marca “esto es lo que estás editando”. Botones `sm`.
 - Acción para abrir un subformulario: `<Boton variante="secundario" tamano="sm">+ Agregar…</Boton>`.
 
-### Chips seleccionables — ✅ implementado (posiciones)
-Checkboxes reales ocultos (`sr-only`) dentro de `<label>` con forma de insignia (`rounded-insignia border px-3 py-1 text-meta font-semibold`). Si no está elegido: `border-borde-fuerte text-tenue`. Si está elegido: `border-verde-claro/50 bg-verde-claro/15 text-verde-claro` (el verde de “activo”, como la casilla y el foco). El foco del teclado se dibuja en la etiqueta con `has-[:focus-visible]:outline-…`.
+### Chips seleccionables — ✅ implementado (posiciones y categorías de temporada)
+Una sola clase, **`claseChip(activa)`** (`components/ui/chip.ts`), sobre un `<label>` con checkbox oculto (posiciones) o sobre un `<button aria-pressed>` (categorías). Forma de insignia (`rounded-insignia border px-3 py-1 text-meta font-semibold`). Si no está elegido: `border-borde-fuerte text-tenue`. Si está elegido: `border-verde-claro/50 bg-verde-claro/15 text-verde-claro` (el verde de “activo”, como la casilla y el foco). Con el checkbox oculto, el foco del teclado se dibuja en la etiqueta con `has-[:focus-visible]:outline-…`. Deshabilitado: `opacity-50`.
+
+### Nota informativa — ✅ implementado
+`<Nota>` (`components/ui/estado.tsx`): `rounded-item border border-borde bg-canvas px-4 py-3 text-meta text-tenue`. Para lo que conviene saber y **no** es un error (“Esta temporada está cerrada…”). Es neutra a propósito: amarilla o roja parecería un problema.
+
+### Controles compactos dentro de una fila
+Si un `<select>` va junto a botones `sm` en una fila de lista, se compacta a su altura con `cn(claseCampo, 'h-8 py-0 text-meta')`. **Con `cn()`, no con un template string:** `py-0` y el `py-2` de `claseCampo` chocan, y con un template string ganaría el que Tailwind escriba después en el CSS.
 
 ### Tablas (equipos, jugadores, posiciones)
 Dentro de `<Tarjeta variante="panel" className="p-0 overflow-hidden">`. Encabezados en `text-leyenda uppercase tracking-wider text-tenue`, sin fondo. Filas con `border-t border-borde`, `hover:bg-superficie-2/50` y celdas `px-4 py-3 text-meta`. Nada de filas de colores alternos (cebra). En móvil, desplazamiento horizontal (`overflow-x-auto`) o una tarjeta por fila.
@@ -515,7 +521,7 @@ Cuando haya fotos (dato para el futuro):
 - [x] `app/manejar-equipos/*` (+ `ui/lista.ts`, `ContenidoAdmin`, `selector-imagen`)
 - [x] `app/manejar-jugadores/*`
 - [ ] `app/manejar-partidos/*`
-- [ ] `app/manejar-temporadas/*`
+- [x] `app/manejar-temporadas/*` (+ `ui/chip.ts`, `Nota`)
 
 **Cierre**
 - [ ] Borrar `inputClass`, `claseEstadoPartido`, `claseEstado` y las props obsoletas de `LoadingButton`

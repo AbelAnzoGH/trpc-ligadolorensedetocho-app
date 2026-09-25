@@ -43,6 +43,19 @@ export function MensajeError({ children, className }: { children: ReactNode; cla
     );
 }
 
+/**
+ * Nota informativa: algo que conviene saber pero no es un error
+ * ("Esta temporada está cerrada…", "Se copian las personas, no sus stats").
+ * Neutra a propósito: si fuera amarilla o roja, parecería un problema.
+ */
+export function Nota({ children, className }: { children: ReactNode; className?: string }) {
+    return (
+        <div className={cn('rounded-item border border-borde bg-canvas px-4 py-3 text-meta text-tenue', className)}>
+            {children}
+        </div>
+    );
+}
+
 /** Lista vacía: borde punteado (el hueco donde irá el contenido) y un mensaje corto. */
 export function Vacio({
     children,

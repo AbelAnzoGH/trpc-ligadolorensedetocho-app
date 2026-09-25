@@ -3,7 +3,12 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { trpcQuery, trpcMutation } from '@/utils/trpc-fetch';
-import { etiquetaCategoria, inputClass } from '@/lib/team-ui';
+import { etiquetaCategoria } from '@/lib/team-ui';
+import LogoEquipo from '@/components/logo-equipo';
+import Boton from '@/components/ui/boton';
+import { Nota } from '@/components/ui/estado';
+import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
+import { claseAccionesFila } from '@/components/ui/lista';
 import {
     nombreTemporada,
     type TeamSeason,
@@ -133,75 +138,60 @@ export default function InscripcionFila({
         );
 
     return (
-        <li className="space-y-3 rounded-lg border border-gray-800 bg-gray-950/40 p-4">
+        // Cada inscripción es un elemento dentro del bloque 3: fondo canvas
+        // (hundido) con borde fino, como las membresías en /manejar-jugadores.
+        <li className="space-y-3 rounded-item border border-borde bg-canvas p-4">
             {/* ---------- Encabezado ---------- */}
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-950/60">
-                        {inscripcion.team.logoUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={inscripcion.team.logoUrl} alt="" className="h-full w-full object-contain" />
-                        ) : (
-                            <span className="text-[9px] uppercase text-gray-600">s/l</span>
-                        )}
-                    </span>
+                    <LogoEquipo nombre={inscripcion.team.name} logoUrl={inscripcion.team.logoUrl} tamano={40} />
                     <span className="min-w-0">
-                        <strong className="block truncate text-white">{inscripcion.team.name}</strong>
-                        <span className="text-sm text-gray-400">
+                        <span className="block truncate font-semibold text-tinta">{inscripcion.team.name}</span>
+                        <span className="text-meta text-tenue">
                             {etiquetaCategoria[inscripcion.category]} · {inscripcion._count.memberships}{' '}
                             {inscripcion._count.memberships === 1 ? 'jugador' : 'jugadores'}
                         </span>
                     </span>
                 </span>
 
-                <span className="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setEditando((v) => !v)}
-                        className="rounded-full border border-gray-600 px-3 py-1 text-sm text-gray-300 hover:text-white"
-                    >
+                <span className={claseAccionesFila}>
+                    <Boton variante="fantasma" tamano="sm" onClick={() => setEditando((v) => !v)} aria-expanded={editando}>
                         {editando ? 'Cerrar' : 'Estadísticas'}
-                    </button>
+                    </Boton>
                     {vacia && !cerrada && (
-                        <button
-                            type="button"
-                            onClick={abrirCopiar}
-                            disabled={guardando || copiando}
-                            className="rounded-full border border-pink-500/60 px-3 py-1 text-sm text-pink-400 hover:text-pink-300 disabled:opacity-50"
-                        >
+                        <Boton variante="secundario" tamano="sm" onClick={abrirCopiar} disabled={guardando || copiando}>
                             Copiar plantilla
-                        </button>
+                        </Boton>
                     )}
                     {vacia && (
-                        <button
-                            type="button"
-                            onClick={onDarDeBaja}
-                            disabled={guardando}
-                            className="rounded-full border border-red-500/60 px-3 py-1 text-sm text-red-400 hover:text-red-300 disabled:opacity-50"
-                        >
+                        <Boton variante="peligro" tamano="sm" onClick={onDarDeBaja} disabled={guardando}>
                             Dar de baja
-                        </button>
+                        </Boton>
                     )}
                 </span>
             </div>
 
             {/* ---------- Resumen de estadísticas ---------- */}
             {!editando && (
-                <p className="text-xs text-gray-500">
-                    {camposEquipo.map((c) => `${c.label} ${inscripcion[c.key]}`).join(' · ')}
+                <p className="text-leyenda tabular-nums text-tenue">
+                    {camposEquipo.map((c) => (
+                        <span key={c.key} title={c.titulo} className="mr-3 inline-block">
+                            {c.label} <span className="font-semibold text-tinta-2">{inscripcion[c.key]}</span>
+                        </span>
+                    ))}
                 </p>
             )}
 
             {/* ---------- Edición de estadísticas ---------- */}
             {editando && (
-                <form onSubmit={onGuardarStats} className="space-y-3">
+                <form onSubmit={onGuardarStats} className="space-y-4">
                     <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
                         {camposEquipo.map((c) => (
-                            <div key={c.key} className="flex flex-col gap-1">
+                            <div key={c.key} className="flex flex-col gap-1.5">
                                 <label
                                     htmlFor={`${inscripcion.id}-${c.key}`}
                                     title={c.titulo}
-                                    className="text-xs text-gray-500"
+                                    className="truncate text-leyenda text-tenue"
                                 >
                                     {c.titulo}
                                 </label>
@@ -211,43 +201,41 @@ export default function InscripcionFila({
                                     min={0}
                                     value={stats[c.key]}
                                     onChange={(e) => setStats({ ...stats, [c.key]: Number(e.target.value) })}
-                                    className={inputClass}
+                                    className={`${claseCampo} w-full tabular-nums`}
                                 />
                             </div>
                         ))}
                     </div>
-                    <button
-                        type="submit"
-                        disabled={guardando}
-                        className="rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
-                    >
-                        {guardando ? 'Guardando...' : 'Guardar estadísticas'}
-                    </button>
+                    <Boton type="submit" tamano="sm" disabled={guardando}>
+                        {guardando ? 'Guardando…' : 'Guardar estadísticas'}
+                    </Boton>
                 </form>
             )}
 
             {/* ---------- Copiar plantilla ---------- */}
+            {/* Subformulario abierto: borde fuerte (design.md). */}
             {copiando && (
-                <form onSubmit={onCopiar} className="space-y-3 rounded-md border border-pink-500/30 p-3">
-                    <p className="text-sm text-gray-300">
-                        Se copian las <strong>personas</strong>, su número y sus posiciones. Las
-                        estadísticas llegan en cero y sin foto: <em>se copia quién es, nunca cómo le fue</em>.
+                <form onSubmit={onCopiar} className="space-y-4 rounded-item border border-borde-fuerte p-4">
+                    <p className="text-meta text-tinta-2">
+                        Se copian las <strong className="font-semibold text-tinta">personas</strong>, su número y
+                        sus posiciones. Las estadísticas llegan en cero y sin foto:{' '}
+                        <em>se copia quién es, nunca cómo le fue</em>.
                     </p>
                     {origenes.length === 0 ? (
-                        <p className="text-sm text-gray-400">
+                        <Nota>
                             {inscripcion.team.name} no tiene otra inscripción con jugadores de la cual copiar.
-                        </p>
+                        </Nota>
                     ) : (
                         <div className="flex flex-wrap items-end gap-3">
-                            <div className="flex flex-col gap-1">
-                                <label htmlFor={`${inscripcion.id}-origen`} className="text-sm text-gray-300">
+                            <div className={claseGrupoCampo}>
+                                <label htmlFor={`${inscripcion.id}-origen`} className={claseEtiqueta}>
                                     Copiar desde
                                 </label>
                                 <select
                                     id={`${inscripcion.id}-origen`}
                                     value={origenId}
                                     onChange={(e) => setOrigenId(e.target.value)}
-                                    className={inputClass}
+                                    className={`${claseCampo} min-w-56`}
                                 >
                                     {origenes.map((o) => (
                                         <option key={o.id} value={o.id}>
@@ -257,22 +245,14 @@ export default function InscripcionFila({
                                     ))}
                                 </select>
                             </div>
-                            <button
-                                type="submit"
-                                disabled={guardando}
-                                className="rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
-                            >
-                                {guardando ? 'Copiando...' : 'Copiar'}
-                            </button>
+                            <Boton type="submit" disabled={guardando}>
+                                {guardando ? 'Copiando…' : 'Copiar'}
+                            </Boton>
                         </div>
                     )}
-                    <button
-                        type="button"
-                        onClick={() => setCopiando(false)}
-                        className="text-sm text-gray-400 hover:text-white"
-                    >
+                    <Boton variante="secundario" tamano="sm" onClick={() => setCopiando(false)}>
                         Cancelar
-                    </button>
+                    </Boton>
                 </form>
             )}
         </li>
