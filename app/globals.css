@@ -71,6 +71,18 @@
   --text-leyenda: 0.75rem;                   /* 12px */
   --text-leyenda--line-height: 1.6;
 
+  /* Nombre "LIGADOLORENSEDETOCHO" escrito junto, a tamaño de título.
+     Son 20 letras sin espacios: no se puede partir en líneas, así que el
+     tamaño se calcula con el ancho de la pantalla para que siempre quepa.
+     Medido con DM Sans 600 y tracking −0.02em: el nombre mide 12.56 veces
+     el tamaño de la letra (se usa 12.6 para dejar un respiro).
+       ancho disponible = 100vw − 4rem (márgenes laterales + barra de scroll)
+       tamaño = ancho disponible / 12.6
+     clamp() lo deja entre 20px (pantallas muy angostas) y 64px (el display). */
+  --text-marca: clamp(1.25rem, calc((100vw - 4rem) / 12.6), 4rem);
+  --text-marca--line-height: 1.1;
+  --text-marca--letter-spacing: -0.02em;
+
   /* ---------- Geometría ---------- */
   --radius-insignia: 12px;   /* insignias y chips */
   --radius-control: 14px;    /* botones, inputs, selects */

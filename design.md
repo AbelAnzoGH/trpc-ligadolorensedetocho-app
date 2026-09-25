@@ -29,6 +29,10 @@ La idea de fondo no cambió respecto a la referencia: **los grises cargan casi t
 | 2026-09-25 | **Enlaces de admin en un desplegable “Administrar”** en escritorio; en móvil van listados en su propio grupo. | Nueve elementos en la barra no caben ni se leen. En móvil hay espacio vertical de sobra. |
 | 2026-09-25 | **Rutas del menú centralizadas en `lib/navegacion.ts`** (`enlacesPublicos`, `enlacesAdmin`, `esRutaActiva`). | Header y footer tenían la lista duplicada a mano y el footer ya se había quedado sin “Temporadas”. |
 | 2026-09-25 | **Enlace activo marcado con `aria-current="page"`** y estilizado con `aria-[current=page]:…`. | Un solo atributo sirve al lector de pantalla y al estilo; no puede desincronizarse. |
+| 2026-09-25 | **Nueva forma de trabajo:** Claude escribe el código, muestra la propuesta (capturas y resumen) y **pregunta antes de aplicarla**. Si hay dudas, Abel indica cómo lo necesita. | Decisión de Abel. Sustituye al reparto anterior (Claude la base, Abel las páginas). |
+| 2026-09-25 | **El nombre se escribe junto, “LIGADOLORENSEDETOCHO”**, también en el título de la portada. Para que quepa se creó el token `text-marca`, un tamaño fluido que depende del ancho de pantalla. | Decisión de Abel: es la forma del nombre de la liga. Con 20 letras sin espacios no se puede partir en líneas; en lugar de eso se ajusta el tamaño. |
+| 2026-09-25 | **Botones del hero:** “Ver equipos” (primario) y “Ver jugadores” (secundario). | Aprobado por Abel. |
+| 2026-09-25 | **Los estados vacíos van en `text-tenue`**, no en `text-apagado` (corrección). | El aviso sí hay que leerlo, y `apagado` no pasa contraste AA. El patrón contradecía la regla de color. |
 
 ---
 
@@ -110,6 +114,7 @@ Todos viven en `app/globals.css` dentro de `@theme`. Cada `--color-x` genera `bg
 | `text-cuerpo` | 15px | 1.45 | — | normal | **Texto por defecto** (ya está en `<body>`). |
 | `text-meta` | 13px | 1.5 | — | normal / `font-medium` | Etiquetas de formularios, metadatos, botones `sm`, celdas de tablas densas. |
 | `text-leyenda` | 12px | 1.6 | — | `font-medium` | Insignias, notas al pie, errores de campo. |
+| `text-marca` | fluido: 20–64px | 1.1 | −0.02em | `font-semibold` | **Solo** para “LIGADOLORENSEDETOCHO” en tamaño de título. Se calcula como `(100vw − 4rem) / 12.6`: el nombre en DM Sans 600 mide 12.56 veces el tamaño de la letra, así que siempre ocupa una línea. Llega a 64px desde unos 870px de ancho. Si se cambia el peso, hay que volver a medir: en 700 mide 12.70 y ya no cabría. |
 
 **Títulos responsivos.** Un título de 64px no cabe en un teléfono. La escala baja con el ancho de pantalla:
 ```
@@ -263,8 +268,13 @@ Son las piezas que se arman **con** los componentes base durante la migración. 
 ### Footer — ✅ implementado
 `components/footer.tsx`. Mismo ancho y márgenes que el header (`max-w-pagina px-4 sm:px-6`) para que los bordes queden alineados. Solo `border-t border-borde`, sin fondo propio. Marca a la izquierda (logo `h-12` + nombre + “Tocho bandera · Dolores Hidalgo, Gto.” en `text-meta text-tenue`). Columna “La liga” con los enlaces de `enlacesPublicos` (dos columnas en móvil). Copyright en `text-leyenda text-tenue`, separado por un borde fino.
 
-### Hero de portada
-Alineado a la izquierda (no centrado), `pt-16 sm:pt-24`. Título en la escala responsiva de hero, en `tinta`. Debajo, un párrafo `text-cuerpo-lg text-tenue max-w-2xl`. CTA: `primario lg` (“Ver temporada actual”) + `secundario lg` (“Equipos”).
+### Hero de portada — ✅ implementado
+`app/page.tsx`. Alineado a la izquierda (no centrado), `pt-16 sm:pt-24`.
+- Arriba, `<Insignia tono="contorno">Tocho bandera · Dolores Hidalgo, Gto.</Insignia>`.
+- `<h1>` en dos partes: “Bienvenido a la” en `text-subtitulo sm:text-titulo-sm lg:text-titulo text-tinta-2`, y debajo “LIGADOLORENSEDETOCHO” en `text-marca text-tinta` (con `wrap-anywhere` solo como seguro para pantallas de menos de 300px).
+- Párrafo en `text-cuerpo-lg text-tenue max-w-2xl`.
+- Botones: `primario lg` “Ver equipos” y `secundario lg` “Ver jugadores”.
+- Debajo, la cinta de logos y luego las secciones (`<SeccionPlaceholder>`, que es una `<Tarjeta>` pública con estado vacío).
 
 ### Bloque de estadísticas
 Fila de 3 bloques. El número en `text-titulo-sm sm:text-titulo font-semibold tabular-nums text-tinta` y la etiqueta en `text-meta text-tenue`. Ejemplos: equipos inscritos, partidos jugados, jugadores.
@@ -275,11 +285,11 @@ Fila de 3 bloques. El número en `text-titulo-sm sm:text-titulo font-semibold ta
 ### Tablas (equipos, jugadores, posiciones)
 Dentro de `<Tarjeta variante="panel" className="p-0 overflow-hidden">`. Encabezados en `text-leyenda uppercase tracking-wider text-tenue`, sin fondo. Filas con `border-t border-borde`, `hover:bg-superficie-2/50` y celdas `px-4 py-3 text-meta`. Nada de filas de colores alternos (cebra). En móvil, desplazamiento horizontal (`overflow-x-auto`) o una tarjeta por fila.
 
-### Cinta de logos (marquee)
-Logos en `grayscale opacity-60`; al pasar el mouse vuelven al color (`hover:grayscale-0 hover:opacity-100`). Así la cinta no compite con el contenido; es prueba social, como en la referencia.
+### Cinta de logos (marquee) — ✅ implementado
+`components/marquee-equipos.tsx`. `border-y border-borde`, sin fondo. Logos en `grayscale opacity-60`; al pasar el mouse vuelven al color (`hover:grayscale-0 hover:opacity-100`), y la cinta se pausa. Así no compite con el contenido; es prueba social, como en la referencia. Los desvanecidos de los bordes van `from-canvas` a transparente (única excepción a “sin degradados”: no decoran, desvanecen). Cada logo lleva el nombre del equipo como texto alternativo.
 
-### Estados vacíos / “Próximamente”
-`rounded-item border border-dashed border-borde-fuerte` y texto `text-meta text-apagado`, centrado. Un solo mensaje corto y, si aplica, un botón `secundario sm` con la acción que lo llenaría.
+### Estados vacíos / “Próximamente” — ✅ implementado
+En `components/seccion-placeholder.tsx`. `rounded-item border border-dashed border-borde-fuerte` y texto `text-meta font-medium text-tenue`, centrado. Un solo mensaje corto y, si aplica, un botón `secundario sm` con la acción que lo llenaría.
 
 ---
 
@@ -372,7 +382,7 @@ Cuando haya fotos (dato para el futuro):
 **Públicas**
 - [x] `components/header.tsx` + `header-nav.tsx` + `menu-admin.tsx` + `boton-salir.tsx` (sustituye a `auth-menu.tsx`) + `lib/navegacion.ts`
 - [x] `components/footer.tsx`
-- [ ] `app/page.tsx` (hero, marquee, secciones) + `seccion-placeholder`, `marquee-equipos`
+- [x] `app/page.tsx` (hero, marquee, secciones) + `seccion-placeholder`, `marquee-equipos`
 - [ ] `components/partido-tarjeta.tsx`, `partido-compacto.tsx`, `partido-detalle-modal.tsx`
 - [ ] `app/equipos/*`
 - [ ] `app/jugadores/*`

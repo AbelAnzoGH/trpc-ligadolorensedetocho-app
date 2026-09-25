@@ -28,6 +28,7 @@ export const cn = extendTailwindMerge({
                 'cuerpo',
                 'meta',
                 'leyenda',
+                'marca',
             ],
             radius: ['insignia', 'control', 'item', 'panel', 'tarjeta'],
             shadow: ['boton'],
