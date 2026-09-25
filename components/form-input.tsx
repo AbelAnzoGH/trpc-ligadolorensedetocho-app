@@ -1,6 +1,6 @@
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { claseCampo, claseEtiqueta, claseError } from './ui/campo';
+import { claseCampo, claseEtiqueta, claseError, claseGrupoCampo } from './ui/campo';
 
 type FormInputProps = {
     label: string;
@@ -22,7 +22,7 @@ const FormInput: React.FC<FormInputProps> = ({
     const idError = `${name}-error`;
 
     return (
-        <div>
+        <div className={claseGrupoCampo}>
             <label htmlFor={name} className={claseEtiqueta}>
                 {label}
             </label>
@@ -32,7 +32,7 @@ const FormInput: React.FC<FormInputProps> = ({
                 // lee el nombre. `register` no pone id, solo name.
                 id={name}
                 type={type}
-                className={claseCampo}
+                className={`${claseCampo} w-full`}
                 // aria-invalid pinta el borde rojo (ver claseCampo) y avisa
                 // al lector de pantalla; aria-describedby le lee el error.
                 aria-invalid={mensajeError ? true : undefined}

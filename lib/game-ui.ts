@@ -1,5 +1,6 @@
 import type { TeamCategory } from '@/lib/team-schema';
 import type { GamePhase, GameStatus } from '@/lib/game-schema';
+import type { TonoInsignia } from '@/components/ui/insignia';
 
 /**
  * Piezas compartidas por las pantallas de partidos (el admin y la página
@@ -29,7 +30,22 @@ export const etiquetaEstadoPartido: Record<GameStatus, string> = {
     suspendido: 'Suspendido',
 };
 
-/** Colores de la etiqueta de estado sobre el fondo oscuro. */
+/**
+ * Tono de la <Insignia> de cada estado (design.md → Estados → tono de insignia).
+ *   <Insignia tono={tonoEstadoPartido[p.status]}>{etiquetaEstadoPartido[p.status]}</Insignia>
+ * "Programado" es lo normal y no merece color; "Final" ya lo dice el
+ * marcador; solo "Suspendido" llama la atención.
+ */
+export const tonoEstadoPartido: Record<GameStatus, TonoInsignia> = {
+    programado: 'contorno',
+    finalizado: 'neutro',
+    suspendido: 'peligro',
+};
+
+/** Un partido ganado por default lleva esta insignia además de su estado. */
+export const tonoDefault: TonoInsignia = 'aviso';
+
+/** @deprecated Diseño viejo. Usa `tonoEstadoPartido` con <Insignia>. Se borra al terminar la migración. */
 export const claseEstadoPartido: Record<GameStatus, string> = {
     programado: 'border-yellow-500/40 text-yellow-300',
     finalizado: 'border-green-500/40 text-green-300',

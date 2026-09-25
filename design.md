@@ -33,6 +33,10 @@ La idea de fondo no cambió respecto a la referencia: **los grises cargan casi t
 | 2026-09-25 | **El nombre se escribe junto, “LIGADOLORENSEDETOCHO”**, también en el título de la portada. Para que quepa se creó el token `text-marca`, un tamaño fluido que depende del ancho de pantalla. | Decisión de Abel: es la forma del nombre de la liga. Con 20 letras sin espacios no se puede partir en líneas; en lugar de eso se ajusta el tamaño. |
 | 2026-09-25 | **Botones del hero:** “Ver equipos” (primario) y “Ver jugadores” (secundario). | Aprobado por Abel. |
 | 2026-09-25 | **Los estados vacíos van en `text-tenue`**, no en `text-apagado` (corrección). | El aviso sí hay que leerlo, y `apagado` no pasa contraste AA. El patrón contradecía la regla de color. |
+| 2026-09-25 | **Migración completa pantalla por pantalla**, un commit por pantalla, sin push. | Decisión de Abel: que todas las ventanas armonicen entre sí. |
+| 2026-09-25 | **`claseCampo` ya no trae `block w-full`** y mide 40px de alto (`px-3.5 py-2`). Etiqueta, ayuda y error ya no traen margen: la separación la pone `claseGrupoCampo` (`flex flex-col gap-2`). Nuevo: `claseCasilla` para checkboxes. | Las pantallas de admin ponen anchos propios (`w-24`, `min-w-40`); si chocan dos anchos gana el que Tailwind escribe después en el CSS, no el último en el `className`. Con 40px, un input y un `<Boton>` md quedan parejos en la misma fila. |
+| 2026-09-25 | **Tonos de estado implementados:** `tonoEstadoPartido`, `tonoDefault` (`lib/game-ui.ts`) y `tonoEstadoTemporada` (`lib/season-ui.ts`). | Sustituyen a `claseEstadoPartido` y `claseEstado`, que quedan como `@deprecated` hasta la limpieza final. |
+| 2026-09-25 | **En un partido jugado, el perdedor se atenúa** (nombre y marcador en `tenue`); en un empate, ninguno. | El resultado se entiende sin leer los números. |
 
 ---
 
@@ -218,12 +222,17 @@ Tonos: `neutro` (por defecto), `contorno`, `exito`, `aviso`, `peligro` (estos tr
 ### Campos de formulario — `components/ui/campo.ts`
 Son strings, no componentes, para que `{...register()}` de react-hook-form siga yendo directo al `<input>`.
 ```tsx
-<label htmlFor="nombre" className={claseEtiqueta}>Nombre</label>
-<input id="nombre" className={claseCampo} aria-invalid={!!error} {...register('nombre')} />
-{error && <span className={claseError}>{error}</span>}
+<div className={claseGrupoCampo}>
+    <label htmlFor="nombre" className={claseEtiqueta}>Nombre</label>
+    <input id="nombre" className={`${claseCampo} w-full`} aria-invalid={!!error} {...register('nombre')} />
+    {error && <span className={claseError}>{error}</span>}
+</div>
 ```
-- `claseCampo` sirve igual para `<input>`, `<select>` y `<textarea>`.
+- `claseCampo` sirve igual para `<input>`, `<select>` y `<textarea>`. **No trae ancho**: agrégalo tú (`w-full`, `w-24`, `min-w-40`…).
+- Mide 40px de alto, igual que `<Boton>` md.
 - Con `aria-invalid` el borde se pone rojo solo.
+- `claseGrupoCampo` (`flex flex-col gap-2`) separa etiqueta, campo y mensaje. Etiqueta, ayuda y error no traen margen propio.
+- `claseCasilla` para checkboxes y radios: tamaño 16px y palomita en `verde-claro` (`accent-color`).
 - **Reemplaza a `inputClass` de `lib/team-ui.ts`**, que es del diseño viejo y se borra al terminar la migración.
 
 ### Ya adaptados (sin cambiar cómo se usan)
@@ -248,7 +257,11 @@ Son strings, no componentes, para que `{...register()}` de react-hook-form siga 
 | Temporada | `cerrada` | `contorno` | |
 | Equipo/partido | categoría | `neutro` | “Varonil Libre”, “Mixto”… |
 
-Esto sustituye a `claseEstadoPartido` (`lib/game-ui.ts`) y `claseEstado` (`lib/season-ui.ts`). **Pendiente:** crear `tonoEstadoPartido` y `tonoEstadoTemporada` con el tipo `Record<…, TonoInsignia>`.
+Implementado en `tonoEstadoPartido` y `tonoDefault` (`lib/game-ui.ts`) y en `tonoEstadoTemporada` (`lib/season-ui.ts`):
+```tsx
+<Insignia tono={tonoEstadoPartido[p.status]}>{etiquetaEstadoPartido[p.status]}</Insignia>
+<Insignia tono={tonoEstadoTemporada[t.status]}>{etiquetaEstado[t.status]}</Insignia>
+```
 
 ---
 
@@ -279,8 +292,13 @@ Son las piezas que se arman **con** los componentes base durante la migración. 
 ### Bloque de estadísticas
 Fila de 3 bloques. El número en `text-titulo-sm sm:text-titulo font-semibold tabular-nums text-tinta` y la etiqueta en `text-meta text-tenue`. Ejemplos: equipos inscritos, partidos jugados, jugadores.
 
-### Tarjeta de partido
-`rounded-item border border-borde bg-superficie`. Arriba, una fila de metadatos en `text-meta text-tenue` con insignias (categoría `neutro` y estado según la tabla). En medio, una rejilla `1fr auto 1fr`: nombres en `font-semibold text-tinta` y marcador en `text-subtitulo font-bold tabular-nums`. Si el partido no se ha jugado, en lugar del marcador va “VS” en `text-leyenda tracking-wider text-apagado`. El ganador puede ir en `tinta` y el perdedor en `tenue`.
+### Tarjeta de partido — ✅ implementado
+Tres versiones que comparten el mismo lenguaje:
+- **`components/partido-tarjeta.tsx`** (rol de admin y lista completa): `rounded-item border border-borde bg-superficie px-4 py-3`. Arriba, metadatos en `text-meta text-tenue` (la fecha en `tinta-2 font-medium`) con insignias: categoría `neutro`, estado según la tabla y `Default` en `aviso`. En medio, una rejilla `1fr auto 1fr`: nombres en `font-semibold` y marcador en `text-subtitulo font-bold tabular-nums`. Si no se ha jugado, “VS” en `text-leyenda uppercase tracking-wider text-apagado`. Los logos van en un recuadro de `size-8 rounded-insignia bg-canvas border-borde`.
+- **`components/partido-compacto.tsx`** (rol público): es un `<button>` con aspecto de tarjeta interactiva (`hover:bg-superficie-2 hover:border-borde-fuerte`). Marcador en `text-titulo-sm` con dos dígitos (“00” en `apagado` si no se ha jugado). Solo lleva insignia si el estado NO es normal.
+- **`components/partido-detalle-modal.tsx`**: logos de 72px, marcador en `text-titulo-sm`, detalles en una lista `<dl>` con `divide-y divide-borde rounded-item`, y el aviso de default en una caja `aviso/10`.
+
+En un partido jugado, **el perdedor va en `tenue`** y el ganador en `tinta`. En un empate, los dos en `tinta`.
 
 ### Tablas (equipos, jugadores, posiciones)
 Dentro de `<Tarjeta variante="panel" className="p-0 overflow-hidden">`. Encabezados en `text-leyenda uppercase tracking-wider text-tenue`, sin fondo. Filas con `border-t border-borde`, `hover:bg-superficie-2/50` y celdas `px-4 py-3 text-meta`. Nada de filas de colores alternos (cebra). En móvil, desplazamiento horizontal (`overflow-x-auto`) o una tarjeta por fila.
@@ -377,13 +395,13 @@ Cuando haya fotos (dato para el futuro):
 - [x] `components/ui/`: `boton`, `insignia`, `tarjeta`, `campo`
 - [x] Adaptados: `modal`, `form-input`, `loading-button`, `spinner`, toasts
 - [ ] Borrar `tailwind.config.ts` (no se usa en Tailwind v4)
-- [ ] `tonoEstadoPartido` y `tonoEstadoTemporada` en `lib/`
+- [x] `tonoEstadoPartido` y `tonoEstadoTemporada` en `lib/`
+- [x] Componentes de partido compartidos: `partido-tarjeta`, `partido-compacto`, `partido-detalle-modal`, `logo-equipo`, `selector-temporada`
 
 **Públicas**
 - [x] `components/header.tsx` + `header-nav.tsx` + `menu-admin.tsx` + `boton-salir.tsx` (sustituye a `auth-menu.tsx`) + `lib/navegacion.ts`
 - [x] `components/footer.tsx`
 - [x] `app/page.tsx` (hero, marquee, secciones) + `seccion-placeholder`, `marquee-equipos`
-- [ ] `components/partido-tarjeta.tsx`, `partido-compacto.tsx`, `partido-detalle-modal.tsx`
 - [ ] `app/equipos/*`
 - [ ] `app/jugadores/*`
 - [ ] `app/ligas/*`

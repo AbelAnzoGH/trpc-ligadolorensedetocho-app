@@ -43,7 +43,7 @@ export const etiquetaCategoria: Record<TeamCategory, string> = {
     mixto_u18: 'Mixto Under18',
 };
 
-/** Clases de Tailwind para inputs y selects sobre el fondo oscuro del sitio. */
+/** @deprecated Diseño viejo. Usa `claseCampo` de components/ui/campo.ts. Se borra al terminar la migración. */
 export const inputClass =
     'rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white ' +
     'placeholder:text-gray-500 focus:border-pink-500 focus:outline-none';
