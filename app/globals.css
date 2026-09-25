@@ -1,29 +1,135 @@
 @import "tailwindcss";
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+/* ===========================================================================
+   SISTEMA DE DISEÑO LDT — tokens
+   La referencia completa (roles, reglas, contrastes) vive en /design.md.
+
+   Cómo funciona @theme en Tailwind v4:
+   cada variable de un "namespace" conocido se convierte en clases.
+     --color-canvas        → bg-canvas, text-canvas, border-canvas…
+     --radius-tarjeta      → rounded-tarjeta
+     --text-cuerpo         → text-cuerpo (tamaño + interlineado)
+     --container-pagina    → max-w-pagina
+     --font-sans           → la fuente por defecto de todo el sitio
+   Además quedan disponibles como variables CSS normales: var(--color-rojo).
+
+   Ojo: tailwind.config.ts YA NO se usa. En v4 solo se leería si este
+   archivo tuviera `@config`, y no lo tiene. Los tokens viven aquí.
+   =========================================================================== */
+
+@theme {
+  /* ---------- Superficies (de atrás hacia adelante) ---------- */
+  --color-canvas: #09090b;        /* fondo de la página */
+  --color-superficie: #18181b;    /* tarjetas, modales, paneles */
+  --color-superficie-2: #27272a;  /* elevado: hover, tarjeta destacada, insignia neutra */
+
+  /* ---------- Bordes (la elevación es con bordes, no con sombras) ---------- */
+  --color-borde: #27272a;         /* línea fina de 1px en tarjetas, inputs, divisores */
+  --color-borde-fuerte: #3f3f46;  /* botón secundario, insignia de contorno, hover de borde */
+
+  /* ---------- Texto ---------- */
+  --color-tinta: #fafafa;         /* títulos, texto principal, relleno del botón primario */
+  --color-tinta-2: #d4d4d8;       /* párrafos y etiquetas secundarias */
+  --color-tenue: #a1a1aa;         /* metadatos, ayuda — el gris más claro que pasa AA en todas las superficies */
+  --color-apagado: #71717a;       /* placeholders y deshabilitado — NUNCA texto importante */
+
+  /* ---------- Escudo de la liga (acento) ---------- */
+  --color-rojo: #c1272d;          /* relleno de insignias de acento (texto blanco encima) */
+  --color-rojo-hover: #a51f25;
+  --color-rojo-claro: #f2646a;    /* rojo para TEXTO sobre fondo oscuro; también errores */
+  --color-verde: #006837;         /* relleno de insignias de acento (texto blanco encima) */
+  --color-verde-hover: #00804a;
+  --color-verde-claro: #3fbf7f;   /* verde para TEXTO sobre fondo oscuro; también éxito */
+
+  /* ---------- Semánticos ---------- */
+  --color-aviso: #fbbf24;         /* pendiente / inscripciones abiertas */
+  --color-foco: #3fbf7f;          /* anillo de foco del teclado (verde: no se confunde con error) */
+
+  /* ---------- Tipografía ---------- */
+  /* --font-dm-sans lo define next/font en app/layout.tsx */
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --text-display: 4rem;                      /* 64px */
+  --text-display--line-height: 1.12;
+  --text-display--letter-spacing: -0.02em;
+  --text-titulo-lg: 3.5rem;                  /* 56px */
+  --text-titulo-lg--line-height: 1.15;
+  --text-titulo-lg--letter-spacing: -0.02em;
+  --text-titulo: 2.5rem;                     /* 40px */
+  --text-titulo--line-height: 1.2;
+  --text-titulo--letter-spacing: -0.01em;
+  --text-titulo-sm: 2rem;                    /* 32px */
+  --text-titulo-sm--line-height: 1.25;
+  --text-subtitulo: 1.25rem;                 /* 20px */
+  --text-subtitulo--line-height: 1.5;
+  --text-cuerpo-lg: 1.125rem;                /* 18px */
+  --text-cuerpo-lg--line-height: 1.45;
+  --text-cuerpo: 0.9375rem;                  /* 15px */
+  --text-cuerpo--line-height: 1.45;
+  --text-meta: 0.8125rem;                    /* 13px */
+  --text-meta--line-height: 1.5;
+  --text-leyenda: 0.75rem;                   /* 12px */
+  --text-leyenda--line-height: 1.6;
+
+  /* ---------- Geometría ---------- */
+  --radius-insignia: 12px;   /* insignias y chips */
+  --radius-control: 14px;    /* botones, inputs, selects */
+  --radius-item: 16px;       /* elementos dentro de una tarjeta: fila de partido, celda de logo */
+  --radius-panel: 24px;      /* tarjetas de administración, modales */
+  --radius-tarjeta: 36px;    /* tarjetas grandes de las páginas públicas */
+
+  /* ---------- Elevación ---------- */
+  /* Solo el botón primario lleva sombra: un bisel interno muy leve. */
+  --shadow-boton: inset 0 1px 0 0 rgb(255 255 255 / 0.7), inset 0 -2px 0 0 rgb(9 9 11 / 0.12);
+
+  /* ---------- Layout ---------- */
+  --container-pagina: 1200px;  /* max-w-pagina */
 }
 
+/* ===========================================================================
+   Base: lo que aplica a todo el sitio sin poner clases.
+   =========================================================================== */
+@layer base {
+  html {
+    /* Solo tema oscuro: esto le dice al navegador que pinte oscuros los
+       controles nativos (select, calendario de <input type="date">,
+       barras de scroll). */
+    color-scheme: dark;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-tinta);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Anillo de foco para quien navega con teclado. Se ve con Tab, no con clic. */
+  :focus-visible {
+    outline: 2px solid var(--color-foco);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: rgb(193 39 45 / 0.45); /* rojo del escudo */
+    color: var(--color-tinta);
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(3 7 18)
-}
+/* ===========================================================================
+   Utilidades propias
+   =========================================================================== */
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Firma visual de la liga: franja verde–blanco–rojo, como el escudo.
+   Regla: UNA por vista como máximo (bajo el header o bajo el título del hero). */
+@utility franja-tricolor {
+  height: 3px;
+  background: linear-gradient(
+    to right,
+    var(--color-verde) 0 33.33%,
+    var(--color-tinta) 33.33% 66.66%,
+    var(--color-rojo) 66.66% 100%
+  );
 }
 
 /* ---------------------------------------------------------------------------
