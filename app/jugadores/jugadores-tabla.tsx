@@ -4,8 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { trpcQuery } from '@/utils/trpc-fetch';
 import { useLigas } from '@/utils/use-ligas';
 import SelectorTemporada from '@/components/selector-temporada';
+import Boton from '@/components/ui/boton';
+import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
+import { Cargando, MensajeError, Vacio } from '@/components/ui/estado';
 import { playerPositions, type PlayerPosition } from '@/lib/player-schema';
-import { inputClass, etiquetaCategoria } from '@/lib/team-ui';
+import { etiquetaCategoria } from '@/lib/team-ui';
 import type { TeamSeason, ListTeamSeasonsResponse } from '@/lib/season-ui';
 import {
     etiquetaPosicion,
@@ -113,103 +116,111 @@ export default function JugadoresTabla() {
         setJersey('');
     };
 
-    if (cargandoLigas) return <p className="text-gray-300">Cargando temporadas...</p>;
-    if (errorLigas) return <p className="text-red-400">Error: {errorLigas}</p>;
+    if (cargandoLigas) return <Cargando texto="Cargando temporadas…" />;
+    if (errorLigas) return <MensajeError>Error: {errorLigas}</MensajeError>;
+
+    // Todos los campos de la rejilla de filtros ocupan su celda completa.
+    const campo = `${claseCampo} w-full`;
 
     return (
         <div className="space-y-6">
-            {/* ---------- Temporada ---------- */}
-            <SelectorTemporada ligas={ligas} seasonId={seasonId} onChange={setSeasonId} />
+            {/* ---------- Barra de filtros (design.md → Barra de filtros) ---------- */}
+            <div className="space-y-4 border-b border-borde pb-6">
+                <SelectorTemporada ligas={ligas} seasonId={seasonId} onChange={setSeasonId} />
 
-            {/* ---------- Barra de filtros ---------- */}
-            <div className="grid gap-4 rounded-lg border border-gray-800 bg-gray-900/40 p-5 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="flex flex-col gap-1">
-                    <label htmlFor="f-equipo" className="text-sm text-gray-300">Equipo</label>
-                    <select
-                        id="f-equipo"
-                        value={equipoId}
-                        onChange={(e) => setEquipoId(e.target.value)}
-                        className={inputClass}
-                    >
-                        <option value="">Todos</option>
-                        {equipos.map((inscripcion) => (
-                            <option key={inscripcion.id} value={inscripcion.id}>
-                                {inscripcion.team.name} ({etiquetaCategoria[inscripcion.category]})
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                {/* Buscar va primero y más ancho: es el filtro que más se usa. En
+                    teléfono, Buscar y Limpiar van a lo ancho y el resto de dos en dos.
+                    [&>*]:min-w-0 deja que un <select> con opciones largas se
+                    encoja a su celda en vez de desbordarla. */}
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-[2fr_1.4fr_1.4fr_0.8fr_1.2fr_auto] [&>*]:min-w-0">
+                    <div className={`${claseGrupoCampo} col-span-2 lg:col-span-1`}>
+                        <label htmlFor="f-busqueda" className={claseEtiqueta}>Buscar</label>
+                        <input
+                            id="f-busqueda"
+                            type="search"
+                            value={busqueda}
+                            onChange={(e) => setBusqueda(e.target.value)}
+                            className={campo}
+                            placeholder="Nombre o apellido"
+                        />
+                    </div>
 
-                <div className="flex flex-col gap-1">
-                    <label htmlFor="f-posicion" className="text-sm text-gray-300">Posición</label>
-                    <select
-                        id="f-posicion"
-                        value={posicion}
-                        onChange={(e) => setPosicion(e.target.value as PlayerPosition | '')}
-                        className={inputClass}
-                    >
-                        <option value="">Todas</option>
-                        {playerPositions.map((p) => (
-                            <option key={p} value={p}>
-                                {p} — {etiquetaPosicion[p]}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="f-equipo" className={claseEtiqueta}>Equipo</label>
+                        <select
+                            id="f-equipo"
+                            value={equipoId}
+                            onChange={(e) => setEquipoId(e.target.value)}
+                            className={campo}
+                        >
+                            <option value="">Todos</option>
+                            {equipos.map((inscripcion) => (
+                                <option key={inscripcion.id} value={inscripcion.id}>
+                                    {inscripcion.team.name} ({etiquetaCategoria[inscripcion.category]})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-                <div className="flex flex-col gap-1">
-                    <label htmlFor="f-jersey" className="text-sm text-gray-300">Número</label>
-                    <input
-                        id="f-jersey"
-                        type="number"
-                        min={0}
-                        max={99}
-                        value={jersey}
-                        onChange={(e) => setJersey(e.target.value)}
-                        className={inputClass}
-                        placeholder="Ej. 7"
-                    />
-                </div>
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="f-posicion" className={claseEtiqueta}>Posición</label>
+                        <select
+                            id="f-posicion"
+                            value={posicion}
+                            onChange={(e) => setPosicion(e.target.value as PlayerPosition | '')}
+                            className={campo}
+                        >
+                            <option value="">Todas</option>
+                            {playerPositions.map((p) => (
+                                <option key={p} value={p}>
+                                    {p} — {etiquetaPosicion[p]}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-                <div className="flex flex-col gap-1">
-                    <label htmlFor="f-orden" className="text-sm text-gray-300">Orden</label>
-                    <select
-                        id="f-orden"
-                        value={orden}
-                        onChange={(e) => setOrden(e.target.value as Orden)}
-                        className={inputClass}
-                    >
-                        <option value="asc">Apellido A → Z</option>
-                        <option value="desc">Apellido Z → A</option>
-                    </select>
-                </div>
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="f-jersey" className={claseEtiqueta}>Número</label>
+                        <input
+                            id="f-jersey"
+                            type="number"
+                            min={0}
+                            max={99}
+                            value={jersey}
+                            onChange={(e) => setJersey(e.target.value)}
+                            className={campo}
+                            placeholder="Ej. 7"
+                        />
+                    </div>
 
-                <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-3">
-                    <label htmlFor="f-busqueda" className="text-sm text-gray-300">Buscar</label>
-                    <input
-                        id="f-busqueda"
-                        value={busqueda}
-                        onChange={(e) => setBusqueda(e.target.value)}
-                        className={inputClass}
-                        placeholder="Nombre o apellido"
-                    />
-                </div>
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="f-orden" className={claseEtiqueta}>Orden</label>
+                        <select
+                            id="f-orden"
+                            value={orden}
+                            onChange={(e) => setOrden(e.target.value as Orden)}
+                            className={campo}
+                        >
+                            <option value="asc">Apellido A → Z</option>
+                            <option value="desc">Apellido Z → A</option>
+                        </select>
+                    </div>
 
-                <div className="flex items-end">
-                    <button
-                        type="button"
+                    {/* self-end: el botón se alinea con los campos, no con las etiquetas. */}
+                    <Boton
+                        variante="fantasma"
                         onClick={limpiarFiltros}
                         disabled={!hayFiltros}
-                        className="w-full rounded-full border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-300 transition hover:text-white disabled:opacity-40"
+                        className="col-span-2 self-end lg:col-span-1"
                     >
                         Limpiar filtros
-                    </button>
+                    </Boton>
                 </div>
             </div>
 
             {/* ---------- Conteo ---------- */}
             {!cargando && !error && (
-                <p className="text-sm text-gray-500">
+                <p className="text-meta text-tenue">
                     {total === 0
                         ? 'Sin resultados'
                         : `${total} ${total === 1 ? 'registro' : 'registros'}`}
@@ -218,13 +229,21 @@ export default function JugadoresTabla() {
             )}
 
             {/* ---------- Rejilla de 3 columnas ---------- */}
-            {cargando && <p className="text-gray-300">Cargando jugadores...</p>}
-            {error && <p className="text-red-400">Error: {error}</p>}
+            {cargando && <Cargando texto="Cargando jugadores…" />}
+            {error && <MensajeError>Error: {error}</MensajeError>}
 
             {!cargando && !error && membresias.length === 0 && (
-                <p className="text-gray-400">
+                <Vacio
+                    accion={
+                        hayFiltros && (
+                            <Boton variante="secundario" tamano="sm" onClick={limpiarFiltros}>
+                                Limpiar filtros
+                            </Boton>
+                        )
+                    }
+                >
                     Ningún jugador coincide con los filtros.
-                </p>
+                </Vacio>
             )}
 
             {!cargando && !error && membresias.length > 0 && (
