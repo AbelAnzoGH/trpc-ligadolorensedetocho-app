@@ -21,6 +21,7 @@ import {
     type TeamResponse,
 } from '@/lib/team-ui';
 import SelectorImagen from '@/components/selector-imagen';
+import PlantelModal from '@/components/plantel-modal';
 
 /**
  * Panel de administración de equipos: el CRUD completo, con logo opcional.
@@ -34,6 +35,8 @@ import SelectorImagen from '@/components/selector-imagen';
  */
 export default function EquiposPanel() {
     const [equipos, setEquipos] = useState<Team[]>([]);
+    // Equipo cuyo plantel se está editando. null = modal cerrado.
+    const [plantelDe, setPlantelDe] = useState<Team | null>(null);
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -294,6 +297,12 @@ export default function EquiposPanel() {
                                 </span>
 
                                 <span className={claseAccionesFila}>
+                                    {/* El plantel es de una inscripción: sin inscripciones no hay a dónde agregar. */}
+                                    {equipo._count.teamSeasons > 0 && (
+                                        <Boton variante="fantasma" tamano="sm" onClick={() => setPlantelDe(equipo)}>
+                                            Plantel
+                                        </Boton>
+                                    )}
                                     <Boton variante="fantasma" tamano="sm" onClick={() => onEditar(equipo)}>
                                         Editar
                                     </Boton>
@@ -315,6 +324,10 @@ export default function EquiposPanel() {
                     </ul>
                 )}
             </section>
+
+            {plantelDe && (
+                <PlantelModal equipo={plantelDe} onCerrar={() => setPlantelDe(null)} />
+            )}
         </div>
     );
 }

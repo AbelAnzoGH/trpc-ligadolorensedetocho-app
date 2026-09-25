@@ -48,6 +48,7 @@ La idea de fondo no cambió respecto a la referencia: **los grises cargan casi t
 | 2026-09-25 | **Ojo con `space-y-*` en Tailwind v4:** pone el margen *abajo* de cada hijo con especificidad cero, así que un `mb-0` en un hijo lo anula. | Nos pasó en /manejar-jugadores: el título quedó pegado a los filtros. |
 | 2026-09-25 | **Migración terminada.** Todas las pantallas usan el sistema; se borraron `inputClass`, `claseEstadoPartido`, `claseEstado`, las props viejas de `LoadingButton` y `tailwind.config.ts`, y se apagó la paleta por defecto de Tailwind. | A partir de aquí, lo nuevo se construye con los componentes y patrones de este documento; lo que no exista se agrega aquí primero. |
 | 2026-09-25 | **Pendiente (comportamiento, no diseño):** “Eliminar” no pide confirmación en ninguna pantalla. La regla del botón `peligro` dice que debería. | Queda anotado; se decide aparte porque cambia cómo funciona la app. |
+| 2026-09-25 | **Plantel editable en un modal** (`components/plantel-modal.tsx`), abierto con “Plantel” (`fantasma sm`) desde cada equipo en /manejar-equipos y desde cada inscripción en /manejar-temporadas. Dos modos con `claseChip`: “Jugador nuevo” y “Ya registrado”. | Decisión de Abel: registrar un plantel desde el equipo es más rápido que ir persona por persona en /manejar-jugadores. Un solo componente en los dos lugares para que se vean y funcionen igual. |
 
 ---
 
@@ -369,6 +370,9 @@ El título es el nombre (“LDT VII”). En la descripción van el estado como `
 
 ### Plantel (lista de jugadores en un modal) — ✅ implementado
 `ul.divide-y.divide-borde`. En cada fila: `Avatar` de 52px, nombre `font-semibold text-tinta`, posiciones como `<Insignia tono="contorno" title="Quarterback">QB</Insignia>` y el número de camiseta a la derecha.
+
+### Plantel editable (modal de administración) — ✅ implementado
+`components/plantel-modal.tsx`. Mismo aspecto de fila que el *Plantel* público, pero con `Avatar` de 40px y un “Quitar” (`peligro sm`) a la derecha del número. Si el equipo tiene varias inscripciones, arriba va un `<select>` “Temporada y categoría”. Debajo, separado por `border-t border-borde pt-5`, el formulario “Agregar jugador”: los modos como chips (`claseChip` sobre `<button aria-pressed>`), los campos de la persona en `grid sm:grid-cols-2`, y el único primario, “Agregar al plantel”, a todo lo ancho. Los avisos (“ya hay una persona con ese nombre”, “el #7 ya lo usa…”) van en `text-meta text-aviso`, sin caja, como en *Rol de admin*. Si la temporada está cerrada, el formulario y los “Quitar” desaparecen y queda una `<Nota>`.
 
 ### Acceso (login y registro) — ✅ implementado
 `components/acceso.tsx`: columna `max-w-md` centrada con el logo (`h-12`), título `text-titulo-sm`, descripción en `tenue`, el formulario dentro de una `<Tarjeta variante="panel" className="sm:p-8">` y, debajo, la línea “¿No tienes cuenta? Regístrate” con `claseEnlace`. El formulario solo lleva campos (`FormInput`) y el `LoadingButton`, que es el único botón primario.

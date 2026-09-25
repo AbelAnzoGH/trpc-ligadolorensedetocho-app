@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { trpcQuery, trpcMutation } from '@/utils/trpc-fetch';
 import { etiquetaCategoria } from '@/lib/team-ui';
 import LogoEquipo from '@/components/logo-equipo';
+import PlantelModal from '@/components/plantel-modal';
 import Boton from '@/components/ui/boton';
 import { Nota } from '@/components/ui/estado';
 import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
@@ -47,6 +48,8 @@ export default function InscripcionFila({
     onCambio: () => Promise<void>;
 }) {
     const [guardando, setGuardando] = useState(false);
+    // Modal de plantel (el atajo para registrar jugadores de este equipo).
+    const [plantelAbierto, setPlantelAbierto] = useState(false);
 
     // --- estadísticas ---
     const [editando, setEditando] = useState(false);
@@ -155,6 +158,9 @@ export default function InscripcionFila({
                 </span>
 
                 <span className={claseAccionesFila}>
+                    <Boton variante="fantasma" tamano="sm" onClick={() => setPlantelAbierto(true)}>
+                        Plantel
+                    </Boton>
                     <Boton variante="fantasma" tamano="sm" onClick={() => setEditando((v) => !v)} aria-expanded={editando}>
                         {editando ? 'Cerrar' : 'Estadísticas'}
                     </Boton>
@@ -254,6 +260,17 @@ export default function InscripcionFila({
                         Cancelar
                     </Boton>
                 </form>
+            )}
+
+            {/* Se monta solo abierto: cada apertura empieza limpia. onCambio
+                recarga la lista de inscripciones (su conteo de jugadores). */}
+            {plantelAbierto && (
+                <PlantelModal
+                    equipo={inscripcion.team}
+                    inscripcionId={inscripcion.id}
+                    onCerrar={() => setPlantelAbierto(false)}
+                    onCambio={onCambio}
+                />
             )}
         </li>
     );

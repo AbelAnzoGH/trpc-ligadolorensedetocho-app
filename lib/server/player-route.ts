@@ -4,6 +4,7 @@ import {
     playerIdSchema,
     listPlayersSchema,
     createMembershipSchema,
+    registerPlayerInTeamSchema,
     updateMembershipSchema,
     membershipIdSchema,
     listMembershipsSchema,
@@ -17,6 +18,7 @@ import {
     updatePlayerHandler,
     deletePlayerHandler,
     addPlayerToTeamHandler,
+    registerPlayerInTeamHandler,
     updateMembershipHandler,
     removeMembershipHandler,
     listMembershipsHandler,
@@ -55,6 +57,11 @@ const playerRouter = t.router({
     addPlayerToTeam: adminProcedure
         .input(createMembershipSchema)
         .mutation(({ input }) => addPlayerToTeamHandler({ input })),
+
+    // Atajo del modal de plantel: persona nueva + membresía en una transacción.
+    registerPlayerInTeam: adminProcedure
+        .input(registerPlayerInTeamSchema)
+        .mutation(({ input }) => registerPlayerInTeamHandler({ input })),
 
     updateMembership: adminProcedure
         .input(updateMembershipSchema)

@@ -116,6 +116,15 @@ export const createMembershipSchema = z.object({
     photoKey: claveImagenSchema.optional(),
 });
 
+/**
+ * ATAJO del modal de plantel: crear a la persona Y meterla a un equipo en un
+ * solo paso. Son los campos de createPlayer más los de createMembership sin
+ * `playerId` (la persona todavía no existe: nace en esta misma operación).
+ */
+export const registerPlayerInTeamSchema = createPlayerSchema.extend(
+    createMembershipSchema.omit({ playerId: true }).shape,
+);
+
 export const updateMembershipSchema = z.object({
     id: z.string({ error: "El id de la membresía es requerido" }).min(1, { error: "El id de la membresía es requerido" }),
 
@@ -191,5 +200,6 @@ export type UpdatePlayerInput = z.TypeOf<typeof updatePlayerSchema>;
 export type PlayerIdInput = z.TypeOf<typeof playerIdSchema>;
 export type ListPlayersInput = z.TypeOf<typeof listPlayersSchema>;
 export type CreateMembershipInput = z.TypeOf<typeof createMembershipSchema>;
+export type RegisterPlayerInTeamInput = z.TypeOf<typeof registerPlayerInTeamSchema>;
 export type UpdateMembershipInput = z.TypeOf<typeof updateMembershipSchema>;
 export type MembershipIdInput = z.TypeOf<typeof membershipIdSchema>;

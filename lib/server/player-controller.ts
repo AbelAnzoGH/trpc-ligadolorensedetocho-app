@@ -13,6 +13,7 @@ import type {
     PlayerIdInput,
     ListPlayersInput,
     CreateMembershipInput,
+    RegisterPlayerInTeamInput,
     UpdateMembershipInput,
     MembershipIdInput,
     ListMembershipsInput,
@@ -329,6 +330,66 @@ export const addPlayerToTeamHandler = async ({ input }: { input: CreateMembershi
                 photoKey: input.photoKey,
             },
             select: membershipSelect,
+        });
+
+        return { status: 'success', data: { membership } };
+    } catch (err: unknown) {
+        return toTRPCError(err);
+    }
+};
+
+/**
+ * ATAJO: crea a la persona y la mete a un equipo en UNA sola operación.
+ *
+ * ¿Por qué no llamar createPlayer y luego addPlayerToTeam desde el navegador?
+ * Porque si el segundo falla (el jersey ya estaba ocupado, por ejemplo), el
+ * primero ya ocurrió: la persona queda creada y sin equipo, y al reintentar
+ * se crearía OTRA igual. Con $transaction, o se crean las dos filas o ninguna.
+ *
+ * La regla "no dos equipos de la misma categoría" no hace falta revisarla:
+ * la persona es nueva, así que no juega en ningún lado todavía.
+ */
+export const registerPlayerInTeamHandler = async ({ input }: { input: RegisterPlayerInTeamInput }) => {
+    try {
+        const teamSeason = await prisma.teamSeason.findUnique({
+            where: { id: input.teamSeasonId },
+            select: { season: { select: { status: true, number: true, league: { select: { name: true } } } } },
+        });
+        if (!teamSeason) {
+            throw new TRPCError({ code: 'NOT_FOUND', message: 'Ese equipo no está inscrito en esa temporada' });
+        }
+        asegurarTemporadaAbierta(teamSeason.season);
+
+        const jerseyOcupado = await prisma.teamMembership.findUnique({
+            where: {
+                teamSeasonId_jerseyNumber: { teamSeasonId: input.teamSeasonId, jerseyNumber: input.jerseyNumber },
+            },
+            select: { id: true },
+        });
+        if (jerseyOcupado) {
+            throw new TRPCError({
+                code: 'CONFLICT',
+                message: `El número ${input.jerseyNumber} ya está ocupado en este equipo`,
+            });
+        }
+
+        const membership = await prisma.$transaction(async (tx) => {
+            const player = await tx.player.create({
+                data: { name: input.name, lastName: input.lastName, age: input.age, height: input.height },
+                select: { id: true },
+            });
+
+            return tx.teamMembership.create({
+                data: {
+                    playerId: player.id,
+                    teamSeasonId: input.teamSeasonId,
+                    jerseyNumber: input.jerseyNumber,
+                    positions: input.positions,
+                    photoUrl: input.photoUrl,
+                    photoKey: input.photoKey,
+                },
+                select: membershipSelect,
+            });
         });
 
         return { status: 'success', data: { membership } };
