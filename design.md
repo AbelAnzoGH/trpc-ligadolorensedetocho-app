@@ -404,6 +404,13 @@ Cuando una tarjeta administra varias cosas (la persona y sus membresías):
 ### Chips seleccionables — ✅ implementado (posiciones y categorías de temporada)
 Una sola clase, **`claseChip(activa)`** (`components/ui/chip.ts`), sobre un `<label>` con checkbox oculto (posiciones) o sobre un `<button aria-pressed>` (categorías). Forma de insignia (`rounded-insignia border px-3 py-1 text-meta font-semibold`). Si no está elegido: `border-borde-fuerte text-tenue`. Si está elegido: `border-verde-claro/50 bg-verde-claro/15 text-verde-claro` (el verde de “activo”, como la casilla y el foco). Con el checkbox oculto, el foco del teclado se dibuja en la etiqueta con `has-[:focus-visible]:outline-…`. Deshabilitado: `opacity-50`.
 
+### Rol de admin y captura de resultados — ✅ implementado (/manejar-partidos)
+- **Pasos:** 1 Sedes, 2 Temporada de trabajo (bloque activo, con “Trabajando en LDT VII” como enlace), 3 Nuevo partido, 4 El rol. Mismos títulos de jornada que la página pública.
+- **Acciones de un partido:** van dentro de `PartidoTarjeta`, separadas por `border-t border-borde pt-3`. “Capturar resultado” como `secundario sm` (es la principal de la fila, pero un primario por fila serían diez en pantalla); “Editar / reprogramar” y “Suspender/Reactivar” como `fantasma sm`; “Borrar” como `peligro sm`.
+- **Modal de marcador:** dos campos grandes (`cn(claseCampo, 'h-14 py-0 text-center text-titulo-sm font-bold tabular-nums')`) con el nombre del equipo como etiqueta. “Guardar resultado” es el único primario, a todo lo ancho. Debajo, separadas por `border-t`: “Ganado por default” (botones `secundario`) y “Deshacer resultado” (`peligro`).
+- **Avisos dentro de un formulario** (“Hay menos de dos equipos…”, “los otros partidos de la jornada son en otro día”): `text-meta text-aviso`, sin caja.
+- **Fecha y hora** (`campos-fecha.tsx`): selects de `claseCampo` con `px-2.5` (vía `cn`). Los dos puntos de la hora van en `tenue`.
+
 ### Nota informativa — ✅ implementado
 `<Nota>` (`components/ui/estado.tsx`): `rounded-item border border-borde bg-canvas px-4 py-3 text-meta text-tenue`. Para lo que conviene saber y **no** es un error (“Esta temporada está cerrada…”). Es neutra a propósito: amarilla o roja parecería un problema.
 
@@ -520,7 +527,7 @@ Cuando haya fotos (dato para el futuro):
 **Administración**
 - [x] `app/manejar-equipos/*` (+ `ui/lista.ts`, `ContenidoAdmin`, `selector-imagen`)
 - [x] `app/manejar-jugadores/*`
-- [ ] `app/manejar-partidos/*`
+- [x] `app/manejar-partidos/*`
 - [x] `app/manejar-temporadas/*` (+ `ui/chip.ts`, `Nota`)
 
 **Cierre**

@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import type { TeamCategory } from '@/lib/team-schema';
-import { etiquetaCategoria, inputClass } from '@/lib/team-ui';
+import { etiquetaCategoria } from '@/lib/team-ui';
+import Boton from '@/components/ui/boton';
+import { Nota } from '@/components/ui/estado';
+import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
 import type { TeamSeason } from '@/lib/season-ui';
 import { gamePhases, type GamePhase } from '@/lib/game-schema';
 import {
@@ -28,9 +31,6 @@ export type DatosPartido = {
     field: number | null;
     notes: string | null;
 };
-
-const botonPrimario =
-    'rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-5 py-2 font-semibold text-white transition duration-300 hover:bg-linear-to-l disabled:opacity-50';
 
 /**
  * Formulario de un partido. El MISMO componente sirve para crear (en la
@@ -155,10 +155,10 @@ export default function PartidoForm({
     };
 
     if (categorias.length === 0) {
-        return <p className="text-sm text-gray-400">Esta temporada no tiene categorías. Agrégalas en /manejar-temporadas.</p>;
+        return <Nota>Esta temporada no tiene categorías. Agrégalas en /manejar-temporadas.</Nota>;
     }
     if (sedes.length === 0) {
-        return <p className="text-sm text-gray-400">Registra al menos una sede antes de crear partidos.</p>;
+        return <Nota>Registra al menos una sede antes de crear partidos.</Nota>;
     }
 
     const opcionesEquipos = (excluir: string) =>
@@ -169,36 +169,36 @@ export default function PartidoForm({
             ));
 
     return (
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-5">
             <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-categoria`} className="text-sm text-gray-300">Categoría</label>
+                <div className={claseGrupoCampo}>
+                    <label htmlFor={`${idPrefix}-categoria`} className={claseEtiqueta}>Categoría</label>
                     <select
                         id={`${idPrefix}-categoria`}
                         value={categoria}
                         onChange={(e) => setCategoria(e.target.value as TeamCategory)}
-                        className={inputClass}
+                        className={`${claseCampo} min-w-40`}
                     >
                         {categorias.map((c) => (
                             <option key={c} value={c}>{etiquetaCategoria[c]}</option>
                         ))}
                     </select>
                 </div>
-                <div className="flex flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-local`} className="text-sm text-gray-300">Local</label>
-                    <select id={`${idPrefix}-local`} value={localValido} onChange={(e) => setLocal(e.target.value)} className={inputClass}>
+                <div className={claseGrupoCampo}>
+                    <label htmlFor={`${idPrefix}-local`} className={claseEtiqueta}>Local</label>
+                    <select id={`${idPrefix}-local`} value={localValido} onChange={(e) => setLocal(e.target.value)} className={`${claseCampo} min-w-48`}>
                         <option value="">Elige al local</option>
                         {opcionesEquipos('')}
                     </select>
                 </div>
-                <span className="pb-2 text-gray-500">vs</span>
-                <div className="flex flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-visitante`} className="text-sm text-gray-300">Visitante</label>
+                <span className="pb-2.5 text-leyenda font-medium uppercase tracking-wider text-apagado">vs</span>
+                <div className={claseGrupoCampo}>
+                    <label htmlFor={`${idPrefix}-visitante`} className={claseEtiqueta}>Visitante</label>
                     <select
                         id={`${idPrefix}-visitante`}
                         value={visitanteValido}
                         onChange={(e) => setVisitante(e.target.value)}
-                        className={inputClass}
+                        className={`${claseCampo} min-w-48`}
                     >
                         <option value="">Elige al visitante</option>
                         {opcionesEquipos(localValido)}
@@ -206,23 +206,23 @@ export default function PartidoForm({
                 </div>
             </div>
             {equiposCategoria.length < 2 && (
-                <p className="text-sm text-yellow-300">
+                <p className="text-meta text-aviso">
                     Hay menos de dos equipos inscritos en {etiquetaCategoria[categoria as TeamCategory]}.
                 </p>
             )}
 
             <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-fase`} className="text-sm text-gray-300">Fase</label>
-                    <select id={`${idPrefix}-fase`} value={fase} onChange={(e) => setFase(e.target.value as GamePhase)} className={inputClass}>
+                <div className={claseGrupoCampo}>
+                    <label htmlFor={`${idPrefix}-fase`} className={claseEtiqueta}>Fase</label>
+                    <select id={`${idPrefix}-fase`} value={fase} onChange={(e) => setFase(e.target.value as GamePhase)} className={`${claseCampo} min-w-40`}>
                         {gamePhases.map((f) => (
                             <option key={f} value={f}>{etiquetaFase[f]}</option>
                         ))}
                     </select>
                 </div>
-                <div className="flex flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-jornada`} className="text-sm text-gray-300">
-                        Jornada {fase === 'regular' ? '' : '(opcional)'}
+                <div className={claseGrupoCampo}>
+                    <label htmlFor={`${idPrefix}-jornada`} className={claseEtiqueta}>
+                        Jornada {fase !== 'regular' && <span className="font-normal text-tenue">(opcional)</span>}
                     </label>
                     <input
                         id={`${idPrefix}-jornada`}
@@ -230,61 +230,61 @@ export default function PartidoForm({
                         min={1}
                         value={jornada}
                         onChange={(e) => onCambiarJornada(e.target.value)}
-                        className={`${inputClass} w-24`}
+                        className={`${claseCampo} w-24`}
                     />
                 </div>
-                <div className="flex flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-fecha`} className="text-sm text-gray-300">Fecha</label>
+                <div className={claseGrupoCampo}>
+                    <label htmlFor={`${idPrefix}-fecha`} className={claseEtiqueta}>Fecha</label>
                     <CampoFecha id={`${idPrefix}-fecha`} valor={fecha} onChange={setFecha} />
                 </div>
-                <div className="flex flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-hora`} className="text-sm text-gray-300">Hora</label>
+                <div className={claseGrupoCampo}>
+                    <label htmlFor={`${idPrefix}-hora`} className={claseEtiqueta}>Hora</label>
                     <CampoHora id={`${idPrefix}-hora`} valor={hora} onChange={setHora} />
                 </div>
             </div>
 
             {diaJornadaActual && fecha && fecha !== diaJornadaActual && (
-                <p className="text-sm text-yellow-300">
+                <p className="text-meta text-aviso">
                     Ojo: los otros partidos de la jornada {jornada} son en otro día.
                 </p>
             )}
 
             <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-sede`} className="text-sm text-gray-300">Sede</label>
-                    <select id={`${idPrefix}-sede`} value={sede} onChange={(e) => setSede(e.target.value)} className={inputClass}>
+                <div className={claseGrupoCampo}>
+                    <label htmlFor={`${idPrefix}-sede`} className={claseEtiqueta}>Sede</label>
+                    <select id={`${idPrefix}-sede`} value={sede} onChange={(e) => setSede(e.target.value)} className={`${claseCampo} min-w-40`}>
                         {sedes.map((s) => (
                             <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                     </select>
                 </div>
-                <div className="flex flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-campo`} className="text-sm text-gray-300">Campo (opcional)</label>
+                <div className={claseGrupoCampo}>
+                    <label htmlFor={`${idPrefix}-campo`} className={claseEtiqueta}>Campo <span className="font-normal text-tenue">(opcional)</span></label>
                     <input
                         id={`${idPrefix}-campo`}
                         type="number"
                         min={1}
                         value={campo}
                         onChange={(e) => setCampo(e.target.value)}
-                        className={`${inputClass} w-24`}
+                        className={`${claseCampo} w-24`}
                     />
                 </div>
-                <div className="flex min-w-48 flex-1 flex-col gap-1">
-                    <label htmlFor={`${idPrefix}-notas`} className="text-sm text-gray-300">Notas (opcional)</label>
+                <div className={`${claseGrupoCampo} min-w-48 flex-1`}>
+                    <label htmlFor={`${idPrefix}-notas`} className={claseEtiqueta}>Notas <span className="font-normal text-tenue">(opcional)</span></label>
                     <input
                         id={`${idPrefix}-notas`}
                         value={notas}
                         maxLength={500}
                         onChange={(e) => setNotas(e.target.value)}
-                        className={inputClass}
+                        className={`${claseCampo} w-full`}
                         placeholder="Ej. suspendido por lluvia"
                     />
                 </div>
             </div>
 
-            <button type="submit" disabled={guardando} className={botonPrimario}>
+            <Boton type="submit" disabled={guardando}>
                 {textoBoton}
-            </button>
+            </Boton>
         </form>
     );
 }
