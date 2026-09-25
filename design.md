@@ -24,6 +24,11 @@ La idea de fondo no cambió respecto a la referencia: **los grises cargan casi t
 | 2026-09-25 | **Franja tricolor** (verde, blanco, rojo) como firma visual, una por vista como máximo. | Toma los colores del escudo (Dolores Hidalgo, cuna de la Independencia) en un detalle pequeño y reconocible. |
 | 2026-09-25 | **Sin fotos por ahora.** Las secciones de imagen se diseñan para verse bien vacías. | Todavía no hay fotos de partidos. Cuando existan, ver la sección *Imágenes*. |
 | 2026-09-25 | **Orden de migración:** tokens y componentes base → páginas públicas → administración. | Se ven resultados pronto y la administración se migra ya con los componentes probados. |
+| 2026-09-25 | **Header y footer migrados como ejemplo modelo** (los hizo Claude; el resto de páginas las migra Abel con ellos como referencia). | Tener una pieza real y comentada con la cual comparar vale más que la guía en abstracto. |
+| 2026-09-25 | **La franja tricolor vive en el header** y hace de borde inferior (el header no lleva `border-b`). Como el header está en todas las páginas, **ninguna página agrega otra franja**. | Firma constante en todo el sitio y sin decidir página por página. |
+| 2026-09-25 | **Enlaces de admin en un desplegable “Administrar”** en escritorio; en móvil van listados en su propio grupo. | Nueve elementos en la barra no caben ni se leen. En móvil hay espacio vertical de sobra. |
+| 2026-09-25 | **Rutas del menú centralizadas en `lib/navegacion.ts`** (`enlacesPublicos`, `enlacesAdmin`, `esRutaActiva`). | Header y footer tenían la lista duplicada a mano y el footer ya se había quedado sin “Temporadas”. |
+| 2026-09-25 | **Enlace activo marcado con `aria-current="page"`** y estilizado con `aria-[current=page]:…`. | Un solo atributo sirve al lector de pantalla y al estilo; no puede desincronizarse. |
 
 ---
 
@@ -163,7 +168,7 @@ La unidad base es **4px**, igual que la escala por defecto de Tailwind (`1` = 4p
 | Tarjeta, panel, modal | Cambio de superficie (`bg-superficie`) + `border border-borde`. **Sin sombra.** |
 | Hover de algo clicable | Sube un nivel: `hover:bg-superficie-2` y/o `hover:border-borde-fuerte`. |
 | Botón primario | `shadow-boton`: un bisel interno de 1px arriba y 2px abajo. Es la única sombra del sistema. |
-| Header fijo | `bg-canvas/80 backdrop-blur` + `border-b border-borde`. |
+| Header fijo | `bg-canvas/80 backdrop-blur-lg` + `franja-tricolor` abajo (en lugar de borde). |
 | Fondo detrás de un modal | `bg-canvas/80 backdrop-blur-sm`. |
 
 ---
@@ -246,8 +251,17 @@ Esto sustituye a `claseEstadoPartido` (`lib/game-ui.ts`) y `claseEstado` (`lib/s
 
 Son las piezas que se arman **con** los componentes base durante la migración. Cuando una se construya, pasa a “implementado” con la ruta de su archivo.
 
-### Header
-Fijo, `h-16`, `bg-canvas/80 backdrop-blur`, `border-b border-borde`. Logo a la izquierda y nombre “LIGADOLORENSEDETOCHO” en `text-tinta font-bold`, **sin degradado**. Enlaces en `text-meta font-medium text-tenue hover:text-tinta`; el enlace activo en `text-tinta` con una raya de 2px `bg-rojo` debajo. Menú móvil en `bg-superficie` con `border-b border-borde`. Opcional: `franja-tricolor` justo debajo del header (cuenta como la franja de la vista).
+### Header — ✅ implementado
+`components/header.tsx` (servidor) + `header-nav.tsx` (cliente) + `menu-admin.tsx` + `boton-salir.tsx`. Rutas en `lib/navegacion.ts`.
+- Fijo, `h-16`, `bg-canvas/80 backdrop-blur-lg`, **`franja-tricolor` como borde inferior** (sin `border-b`).
+- Logo + “LIGADOLORENSEDETOCHO” en `font-bold tracking-tight text-tinta`, sin degradado.
+- Enlaces de escritorio: `text-meta font-medium text-tenue hover:text-tinta`. El activo (`aria-current="page"`) en `text-tinta` con una raya de 2px `bg-rojo` debajo, hecha con `after:`.
+- Admin (escritorio): botón “Administrar” con desplegable (`rounded-item`, `bg-superficie`, borde fino, filas `rounded-control`). Se cierra con Escape, con un clic fuera o al elegir un enlace. Es un *disclosure*, no un `role="menu"`.
+- Sesión: `BotonSalir` (`secundario sm`), un `<button>` real que funciona con teclado.
+- Móvil: botón hamburguesa `size-10`. El panel va en `bg-superficie`, con filas de 44px de alto (`h-11 rounded-item`); el activo lleva `bg-superficie-2`. El grupo “Administración” va con título, y “Salir” a todo lo ancho al final.
+
+### Footer — ✅ implementado
+`components/footer.tsx`. Mismo ancho y márgenes que el header (`max-w-pagina px-4 sm:px-6`) para que los bordes queden alineados. Solo `border-t border-borde`, sin fondo propio. Marca a la izquierda (logo `h-12` + nombre + “Tocho bandera · Dolores Hidalgo, Gto.” en `text-meta text-tenue`). Columna “La liga” con los enlaces de `enlacesPublicos` (dos columnas en móvil). Copyright en `text-leyenda text-tenue`, separado por un borde fino.
 
 ### Hero de portada
 Alineado a la izquierda (no centrado), `pt-16 sm:pt-24`. Título en la escala responsiva de hero, en `tinta`. Debajo, un párrafo `text-cuerpo-lg text-tenue max-w-2xl`. CTA: `primario lg` (“Ver temporada actual”) + `secundario lg` (“Equipos”).
@@ -311,7 +325,8 @@ Cuando haya fotos (dato para el futuro):
 - No usar `rojo` ni `verde` como color de **texto** (no se leen): para texto van `rojo-claro` y `verde-claro`.
 - No usar `text-apagado` para información que haya que leer.
 - No escribir `#000`, `#fff` ni colores hexadecimales sueltos en los componentes.
-- No poner más de una franja tricolor por vista.
+- No poner otra franja tricolor en las páginas: la del header ya es la única de cada vista.
+- No escribir rutas del menú a mano: agregarlas a `lib/navegacion.ts`.
 
 ---
 
@@ -355,8 +370,8 @@ Cuando haya fotos (dato para el futuro):
 - [ ] `tonoEstadoPartido` y `tonoEstadoTemporada` en `lib/`
 
 **Públicas**
-- [ ] `components/header.tsx` + `header-nav.tsx` + `auth-menu.tsx`
-- [ ] `components/footer.tsx`
+- [x] `components/header.tsx` + `header-nav.tsx` + `menu-admin.tsx` + `boton-salir.tsx` (sustituye a `auth-menu.tsx`) + `lib/navegacion.ts`
+- [x] `components/footer.tsx`
 - [ ] `app/page.tsx` (hero, marquee, secciones) + `seccion-placeholder`, `marquee-equipos`
 - [ ] `components/partido-tarjeta.tsx`, `partido-compacto.tsx`, `partido-detalle-modal.tsx`
 - [ ] `app/equipos/*`
