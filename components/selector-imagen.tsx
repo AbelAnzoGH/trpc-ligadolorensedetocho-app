@@ -110,7 +110,7 @@ export default function SelectorImagen({
                             }}
                             className="self-start text-leyenda font-medium text-rojo-claro underline-offset-4 hover:underline"
                         >
-                            Quitar {etiqueta.toLowerCase()}
+                            Quitar imagen
                         </button>
                     )}
                 </div>

@@ -43,6 +43,10 @@ La idea de fondo no cambió respecto a la referencia: **los grises cargan casi t
 | 2026-09-25 | **El número de camiseta** va en `text-subtitulo font-bold tabular-nums text-tinta` con el “#” en `apagado`. | Antes iba en rosa y en monoespaciada. El número es lo que se lee; el “#” solo acompaña. |
 | 2026-09-25 | **Login y registro pasan al español** (“Bienvenido de vuelta”, “Correo electrónico”, “Crear cuenta”…), también sus toasts. | Eran las únicas pantallas en inglés; armonizar también es hablar igual en todo el sitio. |
 | 2026-09-25 | **Las páginas de acceso son la única excepción centrada** (`components/acceso.tsx`). | Un formulario corto y solo en la pantalla se lee mejor en una columna angosta y centrada. |
+| 2026-09-25 | **Esquema único para /manejar-\***: antetítulo “Administración”, título corto, columna `max-w-4xl` (`ContenidoAdmin`) y bloques como tarjetas de panel con pasos numerados. El borde rosa del “bloque activo” pasa a `border-borde-fuerte`. | Las cuatro pantallas ya compartían la estructura, pero cada una con clases propias. |
+| 2026-09-25 | **Sin emojis en la interfaz:** “✅ playoffs / ❌ playoffs” pasa a una `<Insignia tono="peligro">` que solo aparece si NO está disponible. | Es la misma regla de la tarjeta pública: solo se avisa lo que no es normal. |
+| 2026-09-25 | **Ojo con `space-y-*` en Tailwind v4:** pone el margen *abajo* de cada hijo con especificidad cero, así que un `mb-0` en un hijo lo anula. | Nos pasó en /manejar-jugadores: el título quedó pegado a los filtros. |
+| 2026-09-25 | **Pendiente (comportamiento, no diseño):** “Eliminar” no pide confirmación en ninguna pantalla. La regla del botón `peligro` dice que debería. | Queda anotado; se decide aparte porque cambia cómo funciona la app. |
 
 ---
 
@@ -368,6 +372,38 @@ El título es el nombre (“LDT VII”). En la descripción van el estado como `
 ### Acceso (login y registro) — ✅ implementado
 `components/acceso.tsx`: columna `max-w-md` centrada con el logo (`h-12`), título `text-titulo-sm`, descripción en `tenue`, el formulario dentro de una `<Tarjeta variante="panel" className="sm:p-8">` y, debajo, la línea “¿No tienes cuenta? Regístrate” con `claseEnlace`. El formulario solo lleva campos (`FormInput`) y el `LoadingButton`, que es el único botón primario.
 
+### Páginas de administración — ✅ implementado (/manejar-equipos; mismo esquema en las demás)
+```tsx
+<Header />
+<Pagina>
+    <ContenidoAdmin>                       {/* max-w-4xl, alineado a la izquierda */}
+        <EncabezadoPagina
+            antetitulo="Administración"
+            titulo="Equipos"                 {/* corto: el menú ya dice "Administrar" */}
+            descripcion={<>… <Link className={claseEnlace}>Temporadas</Link></>}
+            acciones={<Link className={claseBoton({ variante: 'secundario', tamano: 'sm' })}>Ver listado público</Link>}
+        />
+        <Panel />
+    </ContenidoAdmin>
+</Pagina>
+```
+- **Cada bloque de trabajo** es una `<Tarjeta variante="panel" as="section">` con su `<TituloSeccion>`. Si los bloques se recorren en orden, llevan número: `<TituloSeccion paso={1}>Ligas</TituloSeccion>`, con el número en `tenue`.
+- **Bloque activo** (el que depende de lo elegido arriba; antes llevaba borde rosa): `className="border-borde-fuerte"`.
+- **Formularios:** `space-y-5`; campos con `claseGrupoCampo` y `claseCampo`; grupos opcionales en un `<fieldset className="rounded-item border border-borde p-4">`; casillas con `claseCasilla` y etiqueta `text-meta text-tinta-2`.
+- **Botones del formulario:** `Boton` primario (“Crear equipo”, “Guardar cambios”) y `secundario` para “Cancelar”. Mientras guarda: “Guardando…” y deshabilitado.
+- **Listas:** `claseLista` y `claseFila` (`components/ui/lista.ts`). En cada fila: datos a la izquierda (nombre en `font-semibold text-tinta` y detalle en `text-meta text-tenue`) y botones a la derecha en `claseAccionesFila`: “Editar” como `fantasma sm` y “Eliminar” como `peligro sm`. Las filas no reaccionan al hover.
+- **Selector de imagen** (`components/selector-imagen.tsx`): vista previa `size-20 rounded-item` con borde punteado; el botón nativo de archivo tiene el aspecto de un `secundario sm` (vía `file:`); “Quitar logo/foto” como enlace en `rojo-claro`.
+
+### Tarjeta de persona con subformularios — ✅ implementado (/manejar-jugadores)
+Cuando una tarjeta administra varias cosas (la persona y sus membresías):
+- La tarjeta es un `<Tarjeta variante="panel" as="li">`, con los datos arriba (nombre `text-cuerpo-lg font-semibold`) y sus botones en `claseAccionesFila`.
+- Cada elemento hijo (una membresía) es una fila `rounded-item border border-borde bg-canvas p-3` con `Avatar`, número de camiseta, nombre, `<Insignia>` de categoría y estadísticas en `text-leyenda tabular-nums text-tenue`. **El historial** (otras temporadas) va con `opacity-60`.
+- **Un subformulario abierto** (editar o agregar una membresía) usa `rounded-item border border-borde-fuerte bg-canvas p-4`: el borde fuerte marca “esto es lo que estás editando”. Botones `sm`.
+- Acción para abrir un subformulario: `<Boton variante="secundario" tamano="sm">+ Agregar…</Boton>`.
+
+### Chips seleccionables — ✅ implementado (posiciones)
+Checkboxes reales ocultos (`sr-only`) dentro de `<label>` con forma de insignia (`rounded-insignia border px-3 py-1 text-meta font-semibold`). Si no está elegido: `border-borde-fuerte text-tenue`. Si está elegido: `border-verde-claro/50 bg-verde-claro/15 text-verde-claro` (el verde de “activo”, como la casilla y el foco). El foco del teclado se dibuja en la etiqueta con `has-[:focus-visible]:outline-…`.
+
 ### Tablas (equipos, jugadores, posiciones)
 Dentro de `<Tarjeta variante="panel" className="p-0 overflow-hidden">`. Encabezados en `text-leyenda uppercase tracking-wider text-tenue`, sin fondo. Filas con `border-t border-borde`, `hover:bg-superficie-2/50` y celdas `px-4 py-3 text-meta`. Nada de filas de colores alternos (cebra). En móvil, desplazamiento horizontal (`overflow-x-auto`) o una tarjeta por fila.
 
@@ -476,8 +512,8 @@ Cuando haya fotos (dato para el futuro):
 - [x] `app/login/*`, `app/register/*` (+ `components/acceso.tsx`)
 
 **Administración**
-- [ ] `app/manejar-equipos/*`
-- [ ] `app/manejar-jugadores/*`
+- [x] `app/manejar-equipos/*` (+ `ui/lista.ts`, `ContenidoAdmin`, `selector-imagen`)
+- [x] `app/manejar-jugadores/*`
 - [ ] `app/manejar-partidos/*`
 - [ ] `app/manejar-temporadas/*`
 

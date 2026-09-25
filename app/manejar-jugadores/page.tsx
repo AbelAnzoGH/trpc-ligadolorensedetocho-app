@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import Header from '@/components/header';
+import { Pagina, EncabezadoPagina, ContenidoAdmin } from '@/components/ui/pagina';
+import { claseBoton } from '@/components/ui/boton';
+import { claseEnlace } from '@/components/ui/enlace';
 import { getAdminUser } from '@/utils/get-auth-user';
 import JugadoresPanel from './jugadores-panel';
 
@@ -10,20 +13,30 @@ export default async function ManejarJugadoresPage() {
     return (
         <>
             <Header />
-            <section className="min-h-screen bg-gray-950 pt-12 pb-20">
-                <div className="mx-auto max-w-3xl px-4">
-                    <h1 className="mb-2 bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text text-center text-4xl font-bold text-transparent lg:text-5xl">
-                        Manejar jugadores
-                    </h1>
-                    <p className="mb-8 text-center text-gray-400">
-                        Registra jugadores y agrégalos a los equipos de cada temporada.{' '}
-                        <Link href="/manejar-equipos" className="text-pink-500 hover:text-pink-400">
-                            Manejar equipos
-                        </Link>
-                    </p>
+            <Pagina>
+                <ContenidoAdmin>
+                    <EncabezadoPagina
+                        antetitulo="Administración"
+                        titulo="Jugadores"
+                        descripcion={
+                            <>
+                                Registra jugadores y agrégalos a los equipos de cada temporada. Los equipos se
+                                crean en{' '}
+                                <Link href="/manejar-equipos" className={claseEnlace}>
+                                    Equipos
+                                </Link>
+                                .
+                            </>
+                        }
+                        acciones={
+                            <Link href="/jugadores" className={claseBoton({ variante: 'secundario', tamano: 'sm' })}>
+                                Ver listado público
+                            </Link>
+                        }
+                    />
                     <JugadoresPanel />
-                </div>
-            </section>
+                </ContenidoAdmin>
+            </Pagina>
         </>
     );
 }

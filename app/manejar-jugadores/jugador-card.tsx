@@ -5,7 +5,14 @@ import toast from 'react-hot-toast';
 import { trpcMutation } from '@/utils/trpc-fetch';
 import { subirImagen } from '@/utils/subir-imagen';
 import type { PlayerPosition } from '@/lib/player-schema';
-import { inputClass, etiquetaCategoria } from '@/lib/team-ui';
+import { etiquetaCategoria } from '@/lib/team-ui';
+import { cn } from '@/lib/cn';
+import Avatar from '@/components/ui/avatar';
+import Boton from '@/components/ui/boton';
+import Insignia from '@/components/ui/insignia';
+import Tarjeta from '@/components/ui/tarjeta';
+import { claseCampo, claseCasilla, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
+import { claseAccionesFila } from '@/components/ui/lista';
 import { nombreTemporada, type TeamSeason } from '@/lib/season-ui';
 import {
     camposEstadistica,
@@ -232,23 +239,26 @@ export default function JugadorCard({
             `Quitado de ${membresia.teamSeason.team.name}`,
         );
 
+    // Todos los campos de esta tarjeta ocupan su celda completa.
+    const campo = `${claseCampo} w-full`;
+
     return (
-        <li className="space-y-4 rounded-lg border border-gray-800 bg-gray-900/40 p-5">
+        <Tarjeta variante="panel" as="li" className="space-y-5">
             {/* ================= Datos de la persona ================= */}
             {editandoPersona ? (
-                <form onSubmit={onGuardarPersona} className="space-y-3">
+                <form onSubmit={onGuardarPersona} className="space-y-4">
                     <div className="grid gap-3 sm:grid-cols-2">
                         <input
                             value={nombre}
                             onChange={(e) => setNombre(e.target.value)}
-                            className={inputClass}
+                            className={campo}
                             placeholder="Nombre"
                             aria-label="Nombre"
                         />
                         <input
                             value={apellido}
                             onChange={(e) => setApellido(e.target.value)}
-                            className={inputClass}
+                            className={campo}
                             placeholder="Apellido"
                             aria-label="Apellido"
                         />
@@ -256,7 +266,7 @@ export default function JugadorCard({
                             type="number"
                             value={edad}
                             onChange={(e) => setEdad(e.target.value)}
-                            className={inputClass}
+                            className={campo}
                             placeholder="Edad"
                             aria-label="Edad"
                         />
@@ -264,7 +274,7 @@ export default function JugadorCard({
                             type="number"
                             value={altura}
                             onChange={(e) => setAltura(e.target.value)}
-                            className={inputClass}
+                            className={campo}
                             placeholder="Altura (cm)"
                             aria-label="Altura en centímetros"
                         />
@@ -273,52 +283,35 @@ export default function JugadorCard({
                     {/* La foto NO se edita aquí: pertenece a la membresía,
                         no a la persona. Cada equipo tiene la suya. */}
 
-                    <div className="flex gap-2">
-                        <button
-                            type="submit"
-                            disabled={guardando}
-                            className="rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
-                        >
+                    <div className="flex flex-wrap gap-2">
+                        <Boton type="submit" tamano="sm" disabled={guardando}>
                             Guardar
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setEditandoPersona(false)}
-                            className="rounded-full border border-gray-600 px-4 py-1.5 text-sm text-gray-300 hover:text-white"
-                        >
+                        </Boton>
+                        <Boton variante="secundario" tamano="sm" onClick={() => setEditandoPersona(false)}>
                             Cancelar
-                        </button>
+                        </Boton>
                     </div>
                 </form>
             ) : (
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h3 className="text-lg font-semibold text-white">
+                    <div className="min-w-0">
+                        <h3 className="text-cuerpo-lg font-semibold text-tinta">
                             {jugador.name} {jugador.lastName}
                         </h3>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-meta text-tenue">
                             {jugador.age} años · {jugador.height} cm ·{' '}
                             {jugador.memberships.length === 0
                                 ? 'sin equipo'
                                 : `${jugador.memberships.length} ${jugador.memberships.length === 1 ? 'participación' : 'participaciones'}`}
                         </p>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            type="button"
-                            onClick={() => setEditandoPersona(true)}
-                            className="rounded-full border border-gray-600 px-4 py-1 text-sm text-gray-300 hover:text-white"
-                        >
+                    <div className={claseAccionesFila}>
+                        <Boton variante="fantasma" tamano="sm" onClick={() => setEditandoPersona(true)}>
                             Editar datos
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onEliminarPersona}
-                            disabled={guardando}
-                            className="rounded-full border border-red-500/60 px-4 py-1 text-sm text-red-400 hover:text-red-300 disabled:opacity-50"
-                        >
+                        </Boton>
+                        <Boton variante="peligro" tamano="sm" onClick={onEliminarPersona} disabled={guardando}>
                             Eliminar
-                        </button>
+                        </Boton>
                     </div>
                 </div>
             )}
@@ -326,22 +319,23 @@ export default function JugadorCard({
             {/* ================= Membresías ================= */}
             <div className="space-y-2">
                 {jugador.memberships.length === 0 && !agregandoEquipo && (
-                    <p className="text-sm text-gray-500">
-                        Todavía no juega en ningún equipo.
-                    </p>
+                    <p className="text-meta text-tenue">Todavía no juega en ningún equipo.</p>
                 )}
 
                 {jugador.memberships.map((membresia) =>
                     editandoMembresia?.id === membresia.id ? (
                         /* ---- Formulario de edición de la membresía ---- */
+                        /* Sub-formulario dentro de la tarjeta: fondo canvas
+                           (hundido) y borde fuerte, para que se vea que es
+                           lo que se está editando ahora. */
                         <form
                             key={membresia.id}
                             onSubmit={onGuardarMembresia}
-                            className="space-y-4 rounded-md border border-pink-500/40 bg-gray-950/60 p-4"
+                            className="space-y-5 rounded-item border border-borde-fuerte bg-canvas p-4"
                         >
-                            <p className="font-semibold text-white">
+                            <p className="font-semibold text-tinta">
                                 {etiquetaMembresia(membresia)}{' '}
-                                <span className="text-sm font-normal text-gray-400">
+                                <span className="text-meta font-normal text-tenue">
                                     ({etiquetaCategoria[membresia.teamSeason.category]})
                                 </span>
                             </p>
@@ -359,9 +353,12 @@ export default function JugadorCard({
                                 }}
                             />
 
-                            <div className="flex flex-col gap-1">
-                                <label className="text-sm text-gray-300">Número de jersey</label>
+                            <div className={claseGrupoCampo}>
+                                <label htmlFor={`${membresia.id}-jersey`} className={claseEtiqueta}>
+                                    Número de jersey
+                                </label>
                                 <input
+                                    id={`${membresia.id}-jersey`}
                                     type="number"
                                     value={editandoMembresia.jerseyNumber}
                                     onChange={(e) =>
@@ -370,12 +367,12 @@ export default function JugadorCard({
                                             jerseyNumber: Number(e.target.value),
                                         })
                                     }
-                                    className={`${inputClass} w-28`}
+                                    className={`${claseCampo} w-28`}
                                 />
                             </div>
 
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm text-gray-300">Posiciones</label>
+                            <div className={claseGrupoCampo}>
+                                <span className={claseEtiqueta}>Posiciones</span>
                                 <PosicionesCheckboxes
                                     value={editandoMembresia.positions}
                                     onChange={(positions) =>
@@ -384,37 +381,37 @@ export default function JugadorCard({
                                 />
                             </div>
 
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm text-gray-300">
+                            <fieldset className={claseGrupoCampo}>
+                                <legend className={`${claseEtiqueta} mb-2`}>
                                     Estadísticas en este equipo, esta temporada
-                                </label>
-                                <div className="grid gap-3 sm:grid-cols-3">
-                                    {camposEstadistica.map((campo) => (
-                                        <div key={campo.key} className="flex flex-col gap-1">
+                                </legend>
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                    {camposEstadistica.map((c) => (
+                                        <div key={c.key} className="flex flex-col gap-1.5">
                                             <label
-                                                htmlFor={`${membresia.id}-${campo.key}`}
-                                                className="text-xs text-gray-500"
+                                                htmlFor={`${membresia.id}-${c.key}`}
+                                                className="text-leyenda text-tenue"
                                             >
-                                                {campo.label}
+                                                {c.label}
                                             </label>
                                             <input
-                                                id={`${membresia.id}-${campo.key}`}
+                                                id={`${membresia.id}-${c.key}`}
                                                 type="number"
-                                                value={editandoMembresia[campo.key as CampoEstadistica]}
+                                                value={editandoMembresia[c.key as CampoEstadistica]}
                                                 onChange={(e) =>
                                                     setEditandoMembresia({
                                                         ...editandoMembresia,
-                                                        [campo.key]: Number(e.target.value),
+                                                        [c.key]: Number(e.target.value),
                                                     })
                                                 }
-                                                className={inputClass}
+                                                className={`${campo} tabular-nums`}
                                             />
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </fieldset>
 
-                            <label className="flex items-center gap-2 text-sm text-gray-300">
+                            <label className="flex items-center gap-2.5 text-meta text-tinta-2">
                                 <input
                                     type="checkbox"
                                     checked={editandoMembresia.availableForPlayoffs}
@@ -424,29 +421,25 @@ export default function JugadorCard({
                                             availableForPlayoffs: e.target.checked,
                                         })
                                     }
-                                    className="h-4 w-4 accent-pink-500"
+                                    className={claseCasilla}
                                 />
                                 Disponible para playoffs
                             </label>
 
-                            <div className="flex gap-2">
-                                <button
-                                    type="submit"
-                                    disabled={guardando}
-                                    className="rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
-                                >
-                                    {guardando ? 'Guardando...' : 'Guardar'}
-                                </button>
-                                <button
-                                    type="button"
+                            <div className="flex flex-wrap gap-2">
+                                <Boton type="submit" tamano="sm" disabled={guardando}>
+                                    {guardando ? 'Guardando…' : 'Guardar'}
+                                </Boton>
+                                <Boton
+                                    variante="secundario"
+                                    tamano="sm"
                                     onClick={() => {
                                         setEditandoMembresia(null);
                                         setArchivoFotoEdicion(null);
                                     }}
-                                    className="rounded-full border border-gray-600 px-4 py-1.5 text-sm text-gray-300 hover:text-white"
                                 >
                                     Cancelar
-                                </button>
+                                </Boton>
                             </div>
                         </form>
                     ) : (
@@ -455,64 +448,54 @@ export default function JugadorCard({
                             key={membresia.id}
                             // Las membresías de OTRAS temporadas son historial:
                             // se ven atenuadas para no confundirlas con las actuales.
-                            className={`flex flex-wrap items-center justify-between gap-3 rounded-md border border-gray-800 bg-gray-950/40 p-3 ${
-                                membresia.teamSeason.season.id === seasonId ? '' : 'opacity-60'
-                            }`}
+                            className={cn(
+                                'flex flex-wrap items-center justify-between gap-3 rounded-item border border-borde bg-canvas p-3',
+                                membresia.teamSeason.season.id !== seasonId && 'opacity-60',
+                            )}
                         >
                             <div className="flex min-w-0 items-center gap-3">
-                                <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-950/60">
-                                    {membresia.photoUrl ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            src={membresia.photoUrl}
-                                            alt=""
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <span className="text-[9px] uppercase text-gray-600">s/f</span>
-                                    )}
-                                </span>
+                                {/* La misma foto redonda que en el plantel público. */}
+                                <Avatar
+                                    src={membresia.photoUrl}
+                                    nombre={jugador.name}
+                                    apellido={jugador.lastName}
+                                    tamano={44}
+                                />
 
-                                <div className="min-w-0 space-y-1">
-                                    <p className="text-white">
-                                        <span className="font-mono text-pink-400">
-                                            #{membresia.jerseyNumber}
-                                        </span>{' '}
-                                        <span className="font-semibold">{etiquetaMembresia(membresia)}</span>{' '}
-                                        <span className="text-sm text-gray-400">
-                                            ({etiquetaCategoria[membresia.teamSeason.category]})
-                                        </span>{' '}
-                                        <span className="text-sm text-gray-500">
-                                            · {membresia.positions.join(' / ')}
+                                <div className="min-w-0 space-y-1.5">
+                                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                        <span className="font-bold tabular-nums text-tinta">
+                                            <span className="text-apagado">#</span>
+                                            {membresia.jerseyNumber}
                                         </span>
+                                        <span className="font-semibold text-tinta">{etiquetaMembresia(membresia)}</span>
+                                        <Insignia>{etiquetaCategoria[membresia.teamSeason.category]}</Insignia>
+                                        <span className="text-meta text-tenue">{membresia.positions.join(' / ')}</span>
                                     </p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-leyenda tabular-nums text-tenue">
                                         {camposEstadistica
                                             .map((c) => `${c.label}: ${membresia[c.key as CampoEstadistica]}`)
                                             .join(' · ')}
-                                        {membresia.availableForPlayoffs
-                                            ? ' · ✅ playoffs'
-                                            : ' · ❌ playoffs'}
                                     </p>
+                                    {/* Como en la tarjeta pública: solo se avisa lo que NO es normal. */}
+                                    {!membresia.availableForPlayoffs && (
+                                        <Insignia tono="peligro">No disponible para playoffs</Insignia>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => onEditarMembresia(membresia)}
-                                    className="rounded-full border border-gray-600 px-3 py-1 text-sm text-gray-300 hover:text-white"
-                                >
+                            <div className={claseAccionesFila}>
+                                <Boton variante="fantasma" tamano="sm" onClick={() => onEditarMembresia(membresia)}>
                                     Editar
-                                </button>
-                                <button
-                                    type="button"
+                                </Boton>
+                                <Boton
+                                    variante="peligro"
+                                    tamano="sm"
                                     onClick={() => onQuitarDeEquipo(membresia)}
                                     disabled={guardando}
-                                    className="rounded-full border border-red-500/60 px-3 py-1 text-sm text-red-400 hover:text-red-300 disabled:opacity-50"
                                 >
                                     Quitar
-                                </button>
+                                </Boton>
                             </div>
                         </div>
                     ),
@@ -523,15 +506,18 @@ export default function JugadorCard({
             {agregandoEquipo ? (
                 <form
                     onSubmit={onAgregarAEquipo}
-                    className="space-y-4 rounded-md border border-gray-700 bg-gray-950/60 p-4"
+                    className="space-y-5 rounded-item border border-borde-fuerte bg-canvas p-4"
                 >
                     <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="flex flex-col gap-1">
-                            <label className="text-sm text-gray-300">Equipo en {temporada}</label>
+                        <div className={claseGrupoCampo}>
+                            <label htmlFor={`${jugador.id}-equipo`} className={claseEtiqueta}>
+                                Equipo en {temporada}
+                            </label>
                             <select
+                                id={`${jugador.id}-equipo`}
                                 value={equipoId}
                                 onChange={(e) => setEquipoId(e.target.value)}
-                                className={inputClass}
+                                className={campo}
                             >
                                 <option value="">Selecciona un equipo</option>
                                 {equiposDisponibles.map((inscripcion) => (
@@ -542,20 +528,23 @@ export default function JugadorCard({
                             </select>
                         </div>
 
-                        <div className="flex flex-col gap-1">
-                            <label className="text-sm text-gray-300">Número de jersey</label>
+                        <div className={claseGrupoCampo}>
+                            <label htmlFor={`${jugador.id}-jersey`} className={claseEtiqueta}>
+                                Número de jersey
+                            </label>
                             <input
+                                id={`${jugador.id}-jersey`}
                                 type="number"
                                 value={jersey}
                                 onChange={(e) => setJersey(e.target.value)}
-                                className={inputClass}
+                                className={campo}
                                 placeholder="Ej. 7"
                             />
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm text-gray-300">Posiciones</label>
+                    <div className={claseGrupoCampo}>
+                        <span className={claseEtiqueta}>Posiciones</span>
                         <PosicionesCheckboxes value={posiciones} onChange={setPosiciones} />
                     </div>
 
@@ -567,37 +556,29 @@ export default function JugadorCard({
                         onQuitar={() => setArchivoFotoNueva(null)}
                     />
 
-                    <div className="flex gap-2">
-                        <button
-                            type="submit"
-                            disabled={guardando}
-                            className="rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
-                        >
-                            {guardando ? 'Guardando...' : 'Agregar'}
-                        </button>
-                        <button
-                            type="button"
+                    <div className="flex flex-wrap gap-2">
+                        <Boton type="submit" tamano="sm" disabled={guardando}>
+                            {guardando ? 'Guardando…' : 'Agregar'}
+                        </Boton>
+                        <Boton
+                            variante="secundario"
+                            tamano="sm"
                             onClick={() => {
                                 setAgregandoEquipo(false);
                                 setArchivoFotoNueva(null);
                             }}
-                            className="rounded-full border border-gray-600 px-4 py-1.5 text-sm text-gray-300 hover:text-white"
                         >
                             Cancelar
-                        </button>
+                        </Boton>
                     </div>
                 </form>
             ) : (
                 equiposDisponibles.length > 0 && (
-                    <button
-                        type="button"
-                        onClick={() => setAgregandoEquipo(true)}
-                        className="text-sm font-semibold text-pink-500 hover:text-pink-400"
-                    >
-                        + Agregar a un equipo de {temporada}
-                    </button>
+                    <Boton variante="secundario" tamano="sm" onClick={() => setAgregandoEquipo(true)}>
+                        <span aria-hidden>+</span> Agregar a un equipo de {temporada}
+                    </Boton>
                 )
             )}
-        </li>
+        </Tarjeta>
     );
 }
