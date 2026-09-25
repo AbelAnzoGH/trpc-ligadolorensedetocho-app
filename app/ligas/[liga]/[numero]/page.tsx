@@ -4,7 +4,9 @@ import { TRPCError } from '@trpc/server';
 import Header from '@/components/header';
 import { createAsyncCaller } from '@/app/api/trpc/trpc-router';
 import { nombreTemporada, etiquetaEstado, claseEstado } from '@/lib/season-ui';
+import type { Game } from '@/lib/game-ui';
 import TemporadaEquipos from './temporada-equipos';
+import TemporadaPartidos from './temporada-partidos';
 
 /**
  * La página PÚBLICA de cada temporada: /ligas/ldt/7, /ligas/shadows/2, ...
@@ -49,6 +51,15 @@ export default async function TemporadaPage({
 
     const titulo = nombreTemporada(season.league, season.number);
 
+    // Los partidos se piden aquí, en el servidor, igual que la temporada: la
+    // página llega completa y la sección no necesita "cargando".
+    // createAsyncCaller llama al handler directo (sin HTTP), así que
+    // scheduledAt llega como Date. Se pasa a texto ISO para que coincida con
+    // el tipo Game de lib/game-ui.ts, el mismo que usa el panel de admin.
+    const partidos: Game[] = await caller
+        .listGames({ seasonId: season.id })
+        .then((r) => r.data.games.map((g) => ({ ...g, scheduledAt: g.scheduledAt.toISOString() })));
+
     return (
         <>
             <Header />
@@ -68,10 +79,13 @@ export default async function TemporadaPage({
                         </span>
                     </p>
 
-                    {/* Cada sección de la temporada es un componente aparte.
-                        El siguiente sprint agrega aquí <TemporadaCalendario /> y
-                        <TemporadaPartidos /> sin reescribir esta página. */}
-                    <TemporadaEquipos inscripciones={season.teamSeasons} temporada={titulo} />
+                    {/* Cada sección de la temporada es un componente aparte:
+                        agregar una (la tabla de posiciones, el próximo sprint)
+                        es agregar una línea aquí, sin reescribir la página. */}
+                    <div className="space-y-12">
+                        <TemporadaPartidos partidos={partidos} categorias={season.categories} />
+                        <TemporadaEquipos inscripciones={season.teamSeasons} temporada={titulo} />
+                    </div>
                 </div>
             </section>
         </>

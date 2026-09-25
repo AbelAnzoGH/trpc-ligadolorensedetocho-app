@@ -149,7 +149,7 @@ export type Game = {
     awayScore: number | null;
     isForfeit: boolean;
     notes: string | null;
-    venue: { id: string; name: string };
+    venue: { id: string; name: string; address: string | null };
     homeTeamSeason: LadoPartido;
     awayTeamSeason: LadoPartido;
 };

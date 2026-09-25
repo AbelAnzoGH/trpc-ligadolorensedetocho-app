@@ -47,7 +47,7 @@ const gameSelect = {
     awayScore: true,
     isForfeit: true,
     notes: true,
-    venue: { select: { id: true, name: true } },
+    venue: { select: { id: true, name: true, address: true } },
     homeTeamSeason: { select: ladoSelect },
     awayTeamSeason: { select: ladoSelect },
 } as const;
