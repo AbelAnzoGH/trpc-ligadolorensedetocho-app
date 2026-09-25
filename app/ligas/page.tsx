@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import Header from '@/components/header';
+import Insignia from '@/components/ui/insignia';
+import { Pagina, EncabezadoPagina, TituloSeccion } from '@/components/ui/pagina';
+import { claseTarjeta } from '@/components/ui/tarjeta';
+import { Vacio } from '@/components/ui/estado';
 import { createAsyncCaller } from '@/app/api/trpc/trpc-router';
-import { romano, urlTemporada, etiquetaEstado, claseEstado } from '@/lib/season-ui';
+import { romano, urlTemporada, etiquetaEstado, tonoEstadoTemporada } from '@/lib/season-ui';
 
 // Página PÚBLICA: el índice de todas las ligas y sus temporadas.
 // No lleva componente 'use client' porque no tiene nada interactivo: son
@@ -18,56 +22,54 @@ export default async function LigasPage() {
     return (
         <>
             <Header />
-            <section className="min-h-screen bg-gray-950 pt-12 pb-20">
-                <div className="mx-auto max-w-3xl px-4">
-                    <h1 className="mb-2 bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text text-center text-4xl font-bold text-transparent lg:text-5xl">
-                        Temporadas
-                    </h1>
-                    <p className="mb-8 text-center text-gray-400">
-                        Todas las ligas y su historial. Las temporadas cerradas se conservan
-                        tal como terminaron.
-                    </p>
+            <Pagina>
+                <EncabezadoPagina
+                    titulo="Temporadas"
+                    descripcion="Todas las ligas y su historial. Las temporadas cerradas se conservan tal como terminaron."
+                />
 
-                    {ligas.length === 0 && (
-                        <p className="text-center text-gray-400">Todavía no hay ligas registradas.</p>
-                    )}
+                {ligas.length === 0 && <Vacio>Todavía no hay ligas registradas.</Vacio>}
 
-                    <div className="space-y-8">
-                        {ligas.map((liga) => (
-                            <div key={liga.id}>
-                                <h2 className="mb-3 text-2xl font-semibold text-white">{liga.name}</h2>
-                                {liga.seasons.length === 0 ? (
-                                    <p className="text-gray-500">Sin temporadas todavía.</p>
-                                ) : (
-                                    <ul className="grid gap-3 sm:grid-cols-2">
-                                        {liga.seasons.map((s) => (
-                                            <li key={s.id}>
-                                                <Link
-                                                    href={urlTemporada(liga, s.number)}
-                                                    className="flex items-center justify-between gap-3 rounded-lg border border-gray-800 bg-gray-900/40 p-4 transition hover:border-pink-500/50"
-                                                >
-                                                    <span>
-                                                        <span className="block font-semibold text-white">
-                                                            Temporada {romano(s.number)}
-                                                        </span>
-                                                        <span className="text-sm text-gray-500">
-                                                            {s._count.teamSeasons}{' '}
-                                                            {s._count.teamSeasons === 1 ? 'equipo' : 'equipos'}
-                                                        </span>
+                <div className="space-y-12">
+                    {ligas.map((liga) => (
+                        <section key={liga.id}>
+                            <TituloSeccion>{liga.name}</TituloSeccion>
+                            {liga.seasons.length === 0 ? (
+                                <Vacio>Sin temporadas todavía.</Vacio>
+                            ) : (
+                                <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    {liga.seasons.map((s) => (
+                                        <li key={s.id}>
+                                            {/* Toda la tarjeta es el enlace: tarjeta interactiva. */}
+                                            <Link
+                                                href={urlTemporada(liga, s.number)}
+                                                className={claseTarjeta({
+                                                    variante: 'panel',
+                                                    interactiva: true,
+                                                    className: 'flex items-center justify-between gap-3 sm:p-5',
+                                                })}
+                                            >
+                                                <span>
+                                                    <span className="block text-cuerpo-lg font-semibold text-tinta">
+                                                        Temporada {romano(s.number)}
                                                     </span>
-                                                    <span className={`rounded-full border px-2 py-0.5 text-xs ${claseEstado[s.status]}`}>
-                                                        {etiquetaEstado[s.status]}
+                                                    <span className="text-meta text-tenue">
+                                                        {s._count.teamSeasons}{' '}
+                                                        {s._count.teamSeasons === 1 ? 'equipo' : 'equipos'}
                                                     </span>
-                                                </Link>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                                                </span>
+                                                <Insignia tono={tonoEstadoTemporada[s.status]}>
+                                                    {etiquetaEstado[s.status]}
+                                                </Insignia>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </section>
+                    ))}
                 </div>
-            </section>
+            </Pagina>
         </>
     );
 }

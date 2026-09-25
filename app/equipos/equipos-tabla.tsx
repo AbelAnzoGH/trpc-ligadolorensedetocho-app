@@ -5,9 +5,7 @@ import Link from 'next/link';
 import { trpcQuery } from '@/utils/trpc-fetch';
 import { useLigas } from '@/utils/use-ligas';
 import SelectorTemporada from '@/components/selector-temporada';
-import LogoEquipo from '@/components/logo-equipo';
-import Insignia from '@/components/ui/insignia';
-import { claseTarjeta } from '@/components/ui/tarjeta';
+import TarjetaEquipo from '@/components/tarjeta-equipo';
 import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
 import { claseEnlace } from '@/components/ui/enlace';
 import { Cargando, MensajeError, Vacio } from '@/components/ui/estado';
@@ -32,8 +30,8 @@ import EquipoRosterModal from './equipo-roster-modal';
  *
  * Diseño: una rejilla de tarjetas (antes era una tabla). Son pocas columnas
  * de datos y lo que identifica a un equipo es su logo, así que la tarjeta
- * le da el espacio. Cada tarjeta es un <button> real: se enfoca con Tab y
- * se abre con Enter o Espacio sin programarlo a mano.
+ * le da el espacio. La tarjeta (components/tarjeta-equipo.tsx) es la misma
+ * que usa la página de cada temporada.
  */
 export default function EquiposTabla() {
     const { ligas, cargando: cargandoLigas, error: errorLigas, seasonId, setSeasonId, elegida } = useLigas();
@@ -137,30 +135,7 @@ export default function EquiposTabla() {
                 <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {inscripciones.map((inscripcion) => (
                         <li key={inscripcion.id}>
-                            <button
-                                type="button"
-                                onClick={() => setAbierta(inscripcion)}
-                                aria-label={`Ver jugadores de ${inscripcion.team.name}`}
-                                className={claseTarjeta({
-                                    variante: 'panel',
-                                    interactiva: true,
-                                    className: 'flex w-full items-center gap-4 text-left sm:p-5',
-                                })}
-                            >
-                                <LogoEquipo nombre={inscripcion.team.name} logoUrl={inscripcion.team.logoUrl} tamano={56} />
-                                <span className="min-w-0 flex-1 space-y-1.5">
-                                    <span className="block truncate text-cuerpo-lg font-semibold text-tinta">
-                                        {inscripcion.team.name}
-                                    </span>
-                                    <span className="flex flex-wrap items-center gap-2 text-meta text-tenue">
-                                        <Insignia>{etiquetaCategoria[inscripcion.category]}</Insignia>
-                                        <span>
-                                            {inscripcion._count.memberships}{' '}
-                                            {inscripcion._count.memberships === 1 ? 'jugador' : 'jugadores'}
-                                        </span>
-                                    </span>
-                                </span>
-                            </button>
+                            <TarjetaEquipo inscripcion={inscripcion} onAbrir={() => setAbierta(inscripcion)} />
                         </li>
                     ))}
                 </ul>

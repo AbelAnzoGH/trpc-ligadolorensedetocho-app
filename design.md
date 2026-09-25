@@ -337,8 +337,28 @@ En un partido jugado, **el perdedor va en `tenue`** y el ganador en `tinta`. En 
 ### Barra de filtros — ✅ implementado (/equipos)
 Fila de selects (`claseGrupoCampo` + `claseCampo` con `min-w-40`) alineados abajo (`flex flex-wrap items-end gap-3`), **sin caja**, separada del contenido con `border-b border-borde pb-6`. Debajo, una línea de resumen en `text-meta text-tenue` (“8 equipos en LDT VII”), con la temporada como `claseEnlace`.
 
-### Rejilla de equipos — ✅ implementado (/equipos)
-`grid gap-3 sm:grid-cols-2 lg:grid-cols-3`. Cada tarjeta es un `<button>` con `claseTarjeta({ variante: 'panel', interactiva: true })`: `LogoEquipo` de 56px, nombre en `text-cuerpo-lg font-semibold` y, debajo, la categoría como `<Insignia>` y el número de jugadores en `text-meta text-tenue`.
+Cuando hay muchos filtros (/jugadores), van en una rejilla debajo del selector de temporada: `grid grid-cols-2 gap-3 lg:grid-cols-[…]` con `[&>*]:min-w-0`, para que un `<select>` con opciones largas no desborde su celda. **Buscar** va primero y más ancho. **Limpiar filtros** es un `<Boton variante="fantasma">` alineado con los campos (`self-end`) y desactivado si no hay filtros. En teléfono, Buscar y Limpiar van a lo ancho y el resto de dos en dos. Si los filtros dejan la lista vacía, el `<Vacio>` ofrece también “Limpiar filtros”.
+
+### Tarjeta de jugador — ✅ implementado (/jugadores)
+`rounded-panel border-borde bg-superficie overflow-hidden`, con la foto arriba de borde a borde (`aspect-[4/3] object-cover`; sin foto, iniciales en `text-titulo text-tenue` sobre `superficie-2`). El número va sobre la foto, en una píldora `bg-canvas/80 backdrop-blur-sm`. Debajo: nombre `text-cuerpo-lg font-semibold`, equipo en `text-meta text-tenue`, categoría como `<Insignia>`, posiciones con `tono="contorno"` y las estadísticas en un `<dl>` de dos columnas (`tabular-nums`) empujado al fondo con `mt-auto`. “No disponible para playoffs” es una `<Insignia tono="peligro">`. No es clicable, así que no reacciona al hover.
+
+### Rejilla de equipos — ✅ implementado (/equipos y página de temporada)
+`grid gap-3 sm:grid-cols-2 lg:grid-cols-3` de **`<TarjetaEquipo>`** (`components/tarjeta-equipo.tsx`), un `<button>` con `claseTarjeta({ variante: 'panel', interactiva: true })`: `LogoEquipo` de 56px, nombre en `text-cuerpo-lg font-semibold` y, debajo, la categoría como `<Insignia>` y el número de jugadores en `text-meta text-tenue`. Con `mostrarCategoria={false}` oculta la insignia cuando la categoría ya está en el título del grupo.
+
+### Grupos dentro de una sección
+Cuando una sección se divide (equipos por categoría, partidos por jornada):
+- **Por categoría:** título `text-leyenda font-medium uppercase tracking-wider text-tenue` (“VARONIL LIBRE · 3”).
+- **Por jornada:** título `text-cuerpo font-semibold text-tinta-2`, con el día en `font-normal text-tenue` (“Jornada 5 · domingo, 4 de octubre de 2026”).
+- Entre grupos, `space-y-8`. Entre secciones de una página, `space-y-12` a `space-y-16`.
+
+### Lista de temporadas — ✅ implementado (/ligas)
+Una sección por liga (`TituloSeccion` con su nombre) y una rejilla de tarjetas-enlace (`<Link className={claseTarjeta({ variante: 'panel', interactiva: true })}>`): “Temporada VII” en `text-cuerpo-lg font-semibold`, número de equipos en `text-meta text-tenue` y el estado como `<Insignia tono={tonoEstadoTemporada[…]}>` a la derecha.
+
+### Miga de pan — ✅ implementado (página de temporada)
+Encima del `EncabezadoPagina`: `<Link className="mb-6 inline-flex items-center gap-1.5 text-meta text-tenue hover:text-tinta">← Todas las temporadas</Link>`. Solo en páginas que dependen de otra (una temporada depende de /ligas).
+
+### Encabezado de temporada — ✅ implementado
+El título es el nombre (“LDT VII”). En la descripción van el estado como `<Insignia>` y un resumen (“8 equipos · 12 partidos”). Las secciones (Rol de juegos, Equipos) usan `TituloSeccion`. El filtro de categoría del rol va en las `acciones` del título, con la etiqueta en `sr-only` porque “Todas las categorías” ya dice qué filtra.
 
 ### Plantel (lista de jugadores en un modal) — ✅ implementado
 `ul.divide-y.divide-borde`. En cada fila: `Avatar` de 52px, nombre `font-semibold text-tinta`, posiciones como `<Insignia tono="contorno" title="Quarterback">QB</Insignia>` y el número de camiseta a la derecha.
@@ -446,8 +466,8 @@ Cuando haya fotos (dato para el futuro):
 - [x] `components/footer.tsx`
 - [x] `app/page.tsx` (hero, marquee, secciones) + `seccion-placeholder`, `marquee-equipos`
 - [x] `app/equipos/*` (+ `ui/pagina`, `ui/estado`, `ui/avatar`, `ui/enlace`)
-- [ ] `app/jugadores/*`
-- [ ] `app/ligas/*`
+- [x] `app/jugadores/*`
+- [x] `app/ligas/*` (+ `components/tarjeta-equipo.tsx`, compartida con /equipos)
 - [ ] `app/login/*`, `app/register/*`
 
 **Administración**
