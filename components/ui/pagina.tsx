@@ -54,22 +54,45 @@ export function EncabezadoPagina({
     );
 }
 
+/**
+ * Columna de las páginas de administración: más angosta que la página
+ * (formularios y listas se leen mal a 1200px) y alineada a la izquierda.
+ * Envuelve TAMBIÉN al EncabezadoPagina, para que sus acciones (p. ej.
+ * "Ver listado público") queden alineadas con el borde de las tarjetas.
+ *
+ *   <Pagina>
+ *       <ContenidoAdmin>
+ *           <EncabezadoPagina antetitulo="Administración" titulo="Equipos" … />
+ *           <EquiposPanel />
+ *       </ContenidoAdmin>
+ *   </Pagina>
+ */
+export function ContenidoAdmin({ children, className }: { children: ReactNode; className?: string }) {
+    return <div className={cn('max-w-4xl', className)}>{children}</div>;
+}
+
 /** Título de una sección dentro de la página o de una tarjeta. */
 export function TituloSeccion({
     children,
     descripcion,
     acciones,
+    paso,
     className,
 }: {
     children: ReactNode;
     descripcion?: ReactNode;
     acciones?: ReactNode;
+    /** Número de paso en los paneles de admin que se recorren en orden (1 · Ligas, 2 · Temporadas…). */
+    paso?: number;
     className?: string;
 }) {
     return (
         <div className={cn('mb-4 flex flex-wrap items-end justify-between gap-3', className)}>
             <div>
-                <h2 className="text-subtitulo font-semibold text-tinta">{children}</h2>
+                <h2 className="text-subtitulo font-semibold text-tinta">
+                    {paso != null && <span className="mr-2 tabular-nums text-tenue">{paso}</span>}
+                    {children}
+                </h2>
                 {descripcion && <p className="mt-1 text-meta text-tenue">{descripcion}</p>}
             </div>
             {acciones && <div className="flex flex-wrap gap-2">{acciones}</div>}

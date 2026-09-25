@@ -41,6 +41,8 @@ La idea de fondo no cambió respecto a la referencia: **los grises cargan casi t
 | 2026-09-25 | **/equipos pasa de tabla a rejilla de tarjetas** (cada una es un `<button>`). | Pocas columnas de datos y el logo es lo que identifica al equipo. Un `<button>` real reemplaza al `<tr role="button">` que había que programar a mano para el teclado. |
 | 2026-09-25 | **Todo logo de equipo se pinta con `LogoEquipo`** (también en `PartidoTarjeta`). | Un equipo sin logo muestra sus iniciales en todas partes, en vez de “s/l” en un sitio e iniciales en otro. |
 | 2026-09-25 | **El número de camiseta** va en `text-subtitulo font-bold tabular-nums text-tinta` con el “#” en `apagado`. | Antes iba en rosa y en monoespaciada. El número es lo que se lee; el “#” solo acompaña. |
+| 2026-09-25 | **Login y registro pasan al español** (“Bienvenido de vuelta”, “Correo electrónico”, “Crear cuenta”…), también sus toasts. | Eran las únicas pantallas en inglés; armonizar también es hablar igual en todo el sitio. |
+| 2026-09-25 | **Las páginas de acceso son la única excepción centrada** (`components/acceso.tsx`). | Un formulario corto y solo en la pantalla se lee mejor en una columna angosta y centrada. |
 
 ---
 
@@ -363,6 +365,9 @@ El título es el nombre (“LDT VII”). En la descripción van el estado como `
 ### Plantel (lista de jugadores en un modal) — ✅ implementado
 `ul.divide-y.divide-borde`. En cada fila: `Avatar` de 52px, nombre `font-semibold text-tinta`, posiciones como `<Insignia tono="contorno" title="Quarterback">QB</Insignia>` y el número de camiseta a la derecha.
 
+### Acceso (login y registro) — ✅ implementado
+`components/acceso.tsx`: columna `max-w-md` centrada con el logo (`h-12`), título `text-titulo-sm`, descripción en `tenue`, el formulario dentro de una `<Tarjeta variante="panel" className="sm:p-8">` y, debajo, la línea “¿No tienes cuenta? Regístrate” con `claseEnlace`. El formulario solo lleva campos (`FormInput`) y el `LoadingButton`, que es el único botón primario.
+
 ### Tablas (equipos, jugadores, posiciones)
 Dentro de `<Tarjeta variante="panel" className="p-0 overflow-hidden">`. Encabezados en `text-leyenda uppercase tracking-wider text-tenue`, sin fondo. Filas con `border-t border-borde`, `hover:bg-superficie-2/50` y celdas `px-4 py-3 text-meta`. Nada de filas de colores alternos (cebra). En móvil, desplazamiento horizontal (`overflow-x-auto`) o una tarjeta por fila.
 
@@ -468,7 +473,7 @@ Cuando haya fotos (dato para el futuro):
 - [x] `app/equipos/*` (+ `ui/pagina`, `ui/estado`, `ui/avatar`, `ui/enlace`)
 - [x] `app/jugadores/*`
 - [x] `app/ligas/*` (+ `components/tarjeta-equipo.tsx`, compartida con /equipos)
-- [ ] `app/login/*`, `app/register/*`
+- [x] `app/login/*`, `app/register/*` (+ `components/acceso.tsx`)
 
 **Administración**
 - [ ] `app/manejar-equipos/*`

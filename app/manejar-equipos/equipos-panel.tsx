@@ -6,10 +6,16 @@ import { trpcQuery, trpcMutation } from '@/utils/trpc-fetch';
 import { subirImagen } from '@/utils/subir-imagen';
 import { useLigas } from '@/utils/use-ligas';
 import SelectorTemporada from '@/components/selector-temporada';
+import LogoEquipo from '@/components/logo-equipo';
+import Boton from '@/components/ui/boton';
+import Tarjeta from '@/components/ui/tarjeta';
+import { TituloSeccion } from '@/components/ui/pagina';
+import { Cargando, MensajeError, Vacio } from '@/components/ui/estado';
+import { claseCampo, claseCasilla, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
+import { claseAccionesFila, claseFila, claseLista } from '@/components/ui/lista';
 import type { TeamCategory } from '@/lib/team-schema';
 import {
     etiquetaCategoria,
-    inputClass,
     type Team,
     type ListTeamsResponse,
     type TeamResponse,
@@ -166,181 +172,149 @@ export default function EquiposPanel() {
     return (
         <div className="space-y-8">
             {/* ---------- Formulario crear / editar ---------- */}
-            <form
-                onSubmit={onSubmit}
-                className="space-y-4 rounded-lg border border-gray-800 bg-gray-900/40 p-6"
-            >
-                <h2 className="text-xl font-semibold text-white">
-                    {editandoId ? 'Editar equipo' : 'Nuevo equipo'}
-                </h2>
+            {/* Tarjeta de panel con su título: el mismo formato que las
+                secciones de los demás paneles de administración. */}
+            <Tarjeta variante="panel" as="section">
+                <TituloSeccion>{editandoId ? 'Editar equipo' : 'Nuevo equipo'}</TituloSeccion>
+                <form onSubmit={onSubmit} className="space-y-5">
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="nombre" className={claseEtiqueta}>Nombre</label>
+                        <input
+                            id="nombre"
+                            value={nombre}
+                            onChange={(e) => setNombre(e.target.value)}
+                            className={`${claseCampo} w-full`}
+                            placeholder="Ej. Halcones"
+                        />
+                    </div>
 
-                <div className="flex flex-col gap-1">
-                    <label htmlFor="nombre" className="text-sm text-gray-300">Nombre</label>
-                    <input
-                        id="nombre"
-                        value={nombre}
-                        onChange={(e) => setNombre(e.target.value)}
-                        className={inputClass}
-                        placeholder="Ej. Halcones"
-                    />
-                </div>
-
-                {/* La inscripción solo aplica al CREAR: para inscribir a un
-                    equipo existente en otra temporada está /manejar-temporadas. */}
-                {!editandoId && (
-                    <fieldset className="space-y-3 rounded-md border border-gray-800 p-4">
-                        <label className="flex items-center gap-2 text-sm text-gray-300">
-                            <input
-                                type="checkbox"
-                                checked={inscribir}
-                                onChange={(e) => setInscribir(e.target.checked)}
-                                className="accent-pink-500"
-                            />
-                            Inscribirlo de una vez en una temporada
-                        </label>
-
-                        {inscribir && (
-                            <div className="flex flex-wrap items-end gap-3">
-                                <SelectorTemporada
-                                    ligas={ligas}
-                                    seasonId={seasonId}
-                                    onChange={setSeasonId}
-                                    idPrefix="nuevo"
+                    {/* La inscripción solo aplica al CREAR: para inscribir a un
+                        equipo existente en otra temporada está /manejar-temporadas. */}
+                    {!editandoId && (
+                        <fieldset className="space-y-4 rounded-item border border-borde p-4">
+                            <label className="flex items-center gap-2.5 text-meta text-tinta-2">
+                                <input
+                                    type="checkbox"
+                                    checked={inscribir}
+                                    onChange={(e) => setInscribir(e.target.checked)}
+                                    className={claseCasilla}
                                 />
-                                <div className="flex flex-col gap-1">
-                                    <label htmlFor="categoria" className="text-sm text-gray-300">Categoría</label>
-                                    <select
-                                        id="categoria"
-                                        value={categoria}
-                                        onChange={(e) => setCategoria(e.target.value as TeamCategory)}
-                                        disabled={categoriasTemporada.length === 0}
-                                        className={inputClass}
-                                    >
-                                        {categoriasTemporada.length === 0 && (
-                                            <option value="">Sin categorías</option>
-                                        )}
-                                        {categoriasTemporada.map((c) => (
-                                            <option key={c} value={c}>{etiquetaCategoria[c]}</option>
-                                        ))}
-                                    </select>
+                                Inscribirlo de una vez en una temporada
+                            </label>
+
+                            {inscribir && (
+                                <div className="flex flex-wrap items-end gap-3">
+                                    <SelectorTemporada
+                                        ligas={ligas}
+                                        seasonId={seasonId}
+                                        onChange={setSeasonId}
+                                        idPrefix="nuevo"
+                                    />
+                                    <div className={claseGrupoCampo}>
+                                        <label htmlFor="categoria" className={claseEtiqueta}>Categoría</label>
+                                        <select
+                                            id="categoria"
+                                            value={categoria}
+                                            onChange={(e) => setCategoria(e.target.value as TeamCategory)}
+                                            disabled={categoriasTemporada.length === 0}
+                                            className={`${claseCampo} min-w-40`}
+                                        >
+                                            {categoriasTemporada.length === 0 && (
+                                                <option value="">Sin categorías</option>
+                                            )}
+                                            {categoriasTemporada.map((c) => (
+                                                <option key={c} value={c}>{etiquetaCategoria[c]}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </fieldset>
-                )}
-
-                <SelectorImagen
-                    archivo={archivoLogo}
-                    urlActual={logoActual}
-                    onSeleccionar={setArchivoLogo}
-                    onQuitar={() => {
-                        setArchivoLogo(null);
-                        setLogoActual(null);
-                    }}
-                />
-
-                <div className="flex gap-2">
-                    <button
-                        type="submit"
-                        disabled={guardando}
-                        className="rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-5 py-2 font-semibold text-white transition duration-300 hover:bg-linear-to-l disabled:opacity-50"
-                    >
-                        {guardando
-                            ? 'Guardando...'
-                            : editandoId
-                              ? 'Guardar cambios'
-                              : 'Crear equipo'}
-                    </button>
-
-                    {editandoId && (
-                        <button
-                            type="button"
-                            onClick={limpiarFormulario}
-                            className="rounded-full border border-gray-600 px-5 py-2 font-semibold text-gray-300 hover:text-white"
-                        >
-                            Cancelar
-                        </button>
+                            )}
+                        </fieldset>
                     )}
-                </div>
-            </form>
+
+                    <SelectorImagen
+                        archivo={archivoLogo}
+                        urlActual={logoActual}
+                        onSeleccionar={setArchivoLogo}
+                        onQuitar={() => {
+                            setArchivoLogo(null);
+                            setLogoActual(null);
+                        }}
+                    />
+
+                    <div className="flex flex-wrap gap-2">
+                        <Boton type="submit" disabled={guardando}>
+                            {guardando
+                                ? 'Guardando…'
+                                : editandoId
+                                  ? 'Guardar cambios'
+                                  : 'Crear equipo'}
+                        </Boton>
+
+                        {editandoId && (
+                            <Boton variante="secundario" onClick={limpiarFormulario}>
+                                Cancelar
+                            </Boton>
+                        )}
+                    </div>
+                </form>
+            </Tarjeta>
 
             {/* ---------- Listado administrable ---------- */}
-            <div>
-                <h2 className="mb-3 text-xl font-semibold text-white">
+            <section>
+                <TituloSeccion>
                     Equipos registrados{' '}
                     {!cargando && !error && (
-                        <span className="text-base font-normal text-gray-500">({equipos.length})</span>
+                        <span className="font-normal tabular-nums text-tenue">({equipos.length})</span>
                     )}
-                </h2>
+                </TituloSeccion>
 
-                {cargando && <p className="text-gray-300">Cargando equipos...</p>}
-                {error && <p className="text-red-400">Error: {error}</p>}
+                {cargando && <Cargando texto="Cargando equipos…" />}
+                {error && <MensajeError>Error: {error}</MensajeError>}
 
                 {!cargando && !error && equipos.length === 0 && (
-                    <p className="text-gray-400">
-                        Todavía no hay equipos. Crea el primero con el formulario de arriba.
-                    </p>
+                    <Vacio>Todavía no hay equipos. Crea el primero con el formulario de arriba.</Vacio>
                 )}
 
                 {!cargando && !error && equipos.length > 0 && (
-                    <ul className="divide-y divide-gray-800 overflow-hidden rounded-lg border border-gray-800">
+                    <ul className={claseLista}>
                         {equipos.map((equipo) => (
-                            <li
-                                key={equipo.id}
-                                className="flex items-center justify-between gap-3 bg-gray-900/40 p-4"
-                            >
+                            <li key={equipo.id} className={claseFila}>
                                 <span className="flex min-w-0 items-center gap-3">
-                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-800 bg-gray-950/60">
-                                        {equipo.logoUrl ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
-                                                src={equipo.logoUrl}
-                                                alt=""
-                                                className="h-full w-full object-contain"
-                                            />
-                                        ) : (
-                                            <span className="text-[9px] uppercase text-gray-600">
-                                                s/l
-                                            </span>
-                                        )}
-                                    </span>
+                                    <LogoEquipo nombre={equipo.name} logoUrl={equipo.logoUrl} tamano={40} />
 
-                                    <span className="min-w-0 truncate">
-                                        <strong className="text-white">{equipo.name}</strong>{' '}
-                                        <span className="text-sm text-gray-400">
-                                            ({equipo._count.teamSeasons === 0
-                                                ? 'sin inscripciones'
-                                                : `${equipo._count.teamSeasons} ${equipo._count.teamSeasons === 1 ? 'inscripción' : 'inscripciones'}`})
+                                    <span className="min-w-0">
+                                        <span className="block truncate font-semibold text-tinta">{equipo.name}</span>
+                                        <span className="text-meta text-tenue">
+                                            {equipo._count.teamSeasons === 0
+                                                ? 'Sin inscripciones'
+                                                : `${equipo._count.teamSeasons} ${equipo._count.teamSeasons === 1 ? 'inscripción' : 'inscripciones'}`}
                                         </span>
                                     </span>
                                 </span>
 
-                                <span className="flex shrink-0 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => onEditar(equipo)}
-                                        className="rounded-full border border-gray-600 px-4 py-1 text-sm text-gray-300 hover:text-white"
-                                    >
+                                <span className={claseAccionesFila}>
+                                    <Boton variante="fantasma" tamano="sm" onClick={() => onEditar(equipo)}>
                                         Editar
-                                    </button>
+                                    </Boton>
                                     {/* Un equipo con historial no se borra (el backend
                                         lo rechaza); ni siquiera se ofrece el botón. */}
                                     {equipo._count.teamSeasons === 0 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onEliminar(equipo)}
-                                        disabled={guardando}
-                                        className="rounded-full border border-red-500/60 px-4 py-1 text-sm text-red-400 hover:text-red-300 disabled:opacity-50"
-                                    >
-                                        Eliminar
-                                    </button>
+                                        <Boton
+                                            variante="peligro"
+                                            tamano="sm"
+                                            onClick={() => onEliminar(equipo)}
+                                            disabled={guardando}
+                                        >
+                                            Eliminar
+                                        </Boton>
                                     )}
                                 </span>
                             </li>
                         ))}
                     </ul>
                 )}
-            </div>
+            </section>
         </div>
     );
 }
