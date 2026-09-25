@@ -50,12 +50,15 @@ const conPuntoPorDefecto: Record<TonoInsignia, boolean> = {
 export default function Insignia({
     tono = 'neutro',
     punto,
+    title,
     className,
     children,
 }: {
     tono?: TonoInsignia;
     /** Fuerza mostrar u ocultar el punto. Si no se pasa, depende del tono. */
     punto?: boolean;
+    /** Texto al pasar el mouse (p. ej. "Quarterback" para "QB"). */
+    title?: string;
     className?: string;
     children: ReactNode;
 }) {
@@ -63,6 +66,7 @@ export default function Insignia({
 
     return (
         <span
+            title={title}
             className={cn(
                 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-insignia border px-2 py-0.5 text-leyenda font-medium',
                 tonos[tono],

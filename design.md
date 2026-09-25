@@ -37,6 +37,10 @@ La idea de fondo no cambió respecto a la referencia: **los grises cargan casi t
 | 2026-09-25 | **`claseCampo` ya no trae `block w-full`** y mide 40px de alto (`px-3.5 py-2`). Etiqueta, ayuda y error ya no traen margen: la separación la pone `claseGrupoCampo` (`flex flex-col gap-2`). Nuevo: `claseCasilla` para checkboxes. | Las pantallas de admin ponen anchos propios (`w-24`, `min-w-40`); si chocan dos anchos gana el que Tailwind escribe después en el CSS, no el último en el `className`. Con 40px, un input y un `<Boton>` md quedan parejos en la misma fila. |
 | 2026-09-25 | **Tonos de estado implementados:** `tonoEstadoPartido`, `tonoDefault` (`lib/game-ui.ts`) y `tonoEstadoTemporada` (`lib/season-ui.ts`). | Sustituyen a `claseEstadoPartido` y `claseEstado`, que quedan como `@deprecated` hasta la limpieza final. |
 | 2026-09-25 | **En un partido jugado, el perdedor se atenúa** (nombre y marcador en `tenue`); en un empate, ninguno. | El resultado se entiende sin leer los números. |
+| 2026-09-25 | **Nuevos componentes compartidos:** `Pagina`, `EncabezadoPagina`, `TituloSeccion` (`ui/pagina.tsx`), `Cargando`, `MensajeError`, `Vacio` (`ui/estado.tsx`), `Avatar` (`ui/avatar.tsx`) y `claseEnlace` (`ui/enlace.ts`). | Todas las pantallas repetían a mano su encabezado, su “Cargando…”, su error en rojo y su lista vacía, cada una distinta. Con componentes, armonizan por construcción. |
+| 2026-09-25 | **/equipos pasa de tabla a rejilla de tarjetas** (cada una es un `<button>`). | Pocas columnas de datos y el logo es lo que identifica al equipo. Un `<button>` real reemplaza al `<tr role="button">` que había que programar a mano para el teclado. |
+| 2026-09-25 | **Todo logo de equipo se pinta con `LogoEquipo`** (también en `PartidoTarjeta`). | Un equipo sin logo muestra sus iniciales en todas partes, en vez de “s/l” en un sitio e iniciales en otro. |
+| 2026-09-25 | **El número de camiseta** va en `text-subtitulo font-bold tabular-nums text-tinta` con el “#” en `apagado`. | Antes iba en rosa y en monoespaciada. El número es lo que se lee; el “#” solo acompaña. |
 
 ---
 
@@ -208,7 +212,7 @@ Tamaños: `sm` (32px de alto, para tablas), `md` (40px, por defecto) y `lg` (48p
 <Insignia tono="exito">En curso</Insignia>
 <Insignia tono="rojo">Campeón</Insignia>
 ```
-Tonos: `neutro` (por defecto), `contorno`, `exito`, `aviso`, `peligro` (estos tres con punto automático), `rojo`, `verde`.
+Tonos: `neutro` (por defecto), `contorno`, `exito`, `aviso`, `peligro` (estos tres con punto automático), `rojo`, `verde`. Acepta `title` para el texto al pasar el mouse (p. ej. `QB` → “Quarterback”).
 
 ### Tarjeta — `components/ui/tarjeta.tsx`
 ```tsx
@@ -234,6 +238,36 @@ Son strings, no componentes, para que `{...register()}` de react-hook-form siga 
 - `claseGrupoCampo` (`flex flex-col gap-2`) separa etiqueta, campo y mensaje. Etiqueta, ayuda y error no traen margen propio.
 - `claseCasilla` para checkboxes y radios: tamaño 16px y palomita en `verde-claro` (`accent-color`).
 - **Reemplaza a `inputClass` de `lib/team-ui.ts`**, que es del diseño viejo y se borra al terminar la migración.
+
+### Página — `components/ui/pagina.tsx`
+Esqueleto de toda página interior (todas menos la portada):
+```tsx
+<Header />
+<Pagina>
+    <EncabezadoPagina titulo="Equipos de la liga" descripcion="…" acciones={<Boton>Nuevo</Boton>} />
+    <TituloSeccion descripcion="…">Plantel</TituloSeccion>
+    …
+</Pagina>
+```
+- `Pagina`: `<main>` con `max-w-pagina` y los mismos márgenes que el header (el título queda alineado con el logo). Relleno: `pt-10 pb-16`, y `sm:pt-14 sm:pb-20`.
+- `EncabezadoPagina`: título `text-titulo-sm sm:text-titulo font-semibold`, descripción `text-cuerpo text-tenue`, `antetitulo` opcional (`text-leyenda uppercase tracking-wider text-tenue`, p. ej. “Administración”) y `acciones` a la derecha.
+- `TituloSeccion`: `text-subtitulo font-semibold` con descripción y acciones opcionales.
+
+### Estados — `components/ui/estado.tsx`
+```tsx
+{cargando && <Cargando texto="Cargando equipos…" />}
+{error && <MensajeError>Error: {error}</MensajeError>}
+{vacia && <Vacio accion={<Boton variante="secundario" tamano="sm">Crear</Boton>}>Todavía no hay equipos.</Vacio>}
+```
+- `Cargando`: spinner de 32px + texto `text-meta text-tenue`, centrado, con `role="status"`.
+- `MensajeError`: caja `rounded-item border-rojo-claro/30 bg-rojo-claro/10 text-rojo-claro`, con `role="alert"`.
+- `Vacio`: patrón de *Estados vacíos* (borde punteado) con acción opcional.
+
+### Avatar — `components/ui/avatar.tsx`
+Foto redonda de un jugador (`rounded-full border-borde bg-superficie-2`, `object-cover`). Sin foto, muestra iniciales en `tinta-2`. Es la única forma de pintar a una persona en el sitio.
+
+### Enlace en texto — `components/ui/enlace.ts`
+`claseEnlace`: `font-medium text-tinta-2` con subrayado `decoration-borde-fuerte underline-offset-4`, que se enciende al hover. Para enlaces dentro de una frase. Los enlaces que parecen botón usan `claseBoton`.
 
 ### Ya adaptados (sin cambiar cómo se usan)
 - **`Modal`**: `bg-superficie`, `rounded-panel`, borde fino, título `text-subtitulo`, botón de cerrar con ícono SVG.
@@ -299,6 +333,15 @@ Tres versiones que comparten el mismo lenguaje:
 - **`components/partido-detalle-modal.tsx`**: logos de 72px, marcador en `text-titulo-sm`, detalles en una lista `<dl>` con `divide-y divide-borde rounded-item`, y el aviso de default en una caja `aviso/10`.
 
 En un partido jugado, **el perdedor va en `tenue`** y el ganador en `tinta`. En un empate, los dos en `tinta`.
+
+### Barra de filtros — ✅ implementado (/equipos)
+Fila de selects (`claseGrupoCampo` + `claseCampo` con `min-w-40`) alineados abajo (`flex flex-wrap items-end gap-3`), **sin caja**, separada del contenido con `border-b border-borde pb-6`. Debajo, una línea de resumen en `text-meta text-tenue` (“8 equipos en LDT VII”), con la temporada como `claseEnlace`.
+
+### Rejilla de equipos — ✅ implementado (/equipos)
+`grid gap-3 sm:grid-cols-2 lg:grid-cols-3`. Cada tarjeta es un `<button>` con `claseTarjeta({ variante: 'panel', interactiva: true })`: `LogoEquipo` de 56px, nombre en `text-cuerpo-lg font-semibold` y, debajo, la categoría como `<Insignia>` y el número de jugadores en `text-meta text-tenue`.
+
+### Plantel (lista de jugadores en un modal) — ✅ implementado
+`ul.divide-y.divide-borde`. En cada fila: `Avatar` de 52px, nombre `font-semibold text-tinta`, posiciones como `<Insignia tono="contorno" title="Quarterback">QB</Insignia>` y el número de camiseta a la derecha.
 
 ### Tablas (equipos, jugadores, posiciones)
 Dentro de `<Tarjeta variante="panel" className="p-0 overflow-hidden">`. Encabezados en `text-leyenda uppercase tracking-wider text-tenue`, sin fondo. Filas con `border-t border-borde`, `hover:bg-superficie-2/50` y celdas `px-4 py-3 text-meta`. Nada de filas de colores alternos (cebra). En móvil, desplazamiento horizontal (`overflow-x-auto`) o una tarjeta por fila.
@@ -402,7 +445,7 @@ Cuando haya fotos (dato para el futuro):
 - [x] `components/header.tsx` + `header-nav.tsx` + `menu-admin.tsx` + `boton-salir.tsx` (sustituye a `auth-menu.tsx`) + `lib/navegacion.ts`
 - [x] `components/footer.tsx`
 - [x] `app/page.tsx` (hero, marquee, secciones) + `seccion-placeholder`, `marquee-equipos`
-- [ ] `app/equipos/*`
+- [x] `app/equipos/*` (+ `ui/pagina`, `ui/estado`, `ui/avatar`, `ui/enlace`)
 - [ ] `app/jugadores/*`
 - [ ] `app/ligas/*`
 - [ ] `app/login/*`, `app/register/*`

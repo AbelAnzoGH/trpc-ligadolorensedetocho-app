@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Insignia from '@/components/ui/insignia';
+import LogoEquipo from '@/components/logo-equipo';
 import { cn } from '@/lib/cn';
 import { etiquetaCategoria } from '@/lib/team-ui';
 import {
@@ -85,16 +86,8 @@ function Lado({
     /** true si este equipo perdió: su nombre va en tenue. */
     atenuado: boolean;
 }) {
-    const logo = (
-        <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-insignia border border-borde bg-canvas">
-            {lado.team.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={lado.team.logoUrl} alt="" className="h-full w-full object-contain" />
-            ) : (
-                <span className="text-[8px] uppercase text-apagado">s/l</span>
-            )}
-        </span>
-    );
+    // El mismo LogoEquipo que el resto del sitio: sin logo, muestra iniciales.
+    const logo = <LogoEquipo nombre={lado.team.name} logoUrl={lado.team.logoUrl} tamano={32} />;
     const nombre = (
         <span className={cn('min-w-0 truncate font-semibold', atenuado ? 'text-tenue' : 'text-tinta')}>
             {lado.team.name}
