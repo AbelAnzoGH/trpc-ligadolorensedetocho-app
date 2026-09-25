@@ -46,6 +46,7 @@ La idea de fondo no cambió respecto a la referencia: **los grises cargan casi t
 | 2026-09-25 | **Esquema único para /manejar-\***: antetítulo “Administración”, título corto, columna `max-w-4xl` (`ContenidoAdmin`) y bloques como tarjetas de panel con pasos numerados. El borde rosa del “bloque activo” pasa a `border-borde-fuerte`. | Las cuatro pantallas ya compartían la estructura, pero cada una con clases propias. |
 | 2026-09-25 | **Sin emojis en la interfaz:** “✅ playoffs / ❌ playoffs” pasa a una `<Insignia tono="peligro">` que solo aparece si NO está disponible. | Es la misma regla de la tarjeta pública: solo se avisa lo que no es normal. |
 | 2026-09-25 | **Ojo con `space-y-*` en Tailwind v4:** pone el margen *abajo* de cada hijo con especificidad cero, así que un `mb-0` en un hijo lo anula. | Nos pasó en /manejar-jugadores: el título quedó pegado a los filtros. |
+| 2026-09-25 | **Migración terminada.** Todas las pantallas usan el sistema; se borraron `inputClass`, `claseEstadoPartido`, `claseEstado`, las props viejas de `LoadingButton` y `tailwind.config.ts`, y se apagó la paleta por defecto de Tailwind. | A partir de aquí, lo nuevo se construye con los componentes y patrones de este documento; lo que no exista se agrega aquí primero. |
 | 2026-09-25 | **Pendiente (comportamiento, no diseño):** “Eliminar” no pide confirmación en ninguna pantalla. La regla del botón `peligro` dice que debería. | Queda anotado; se decide aparte porque cambia cómo funciona la app. |
 
 ---
@@ -109,7 +110,7 @@ Todos viven en `app/globals.css` dentro de `@theme`. Cada `--color-x` genera `bg
 - **Un estado nunca depende solo del color:** la insignia de estado lleva punto y texto.
 - **Nada de degradados**, salvo la franja tricolor.
 - **Nunca `#000` ni `#fff` puros.** Los extremos son `canvas` y `tinta`.
-- La paleta por defecto de Tailwind (`gray-*`, `pink-*`…) sigue existiendo mientras dure la migración. **En código nuevo no se usa.** Cuando termine la migración se puede apagar con `--color-*: initial;` en `@theme`.
+- **La paleta por defecto de Tailwind está apagada** (`--color-*: initial;` al inicio de `@theme`). `gray-800`, `pink-500`, `white`… no existen: si alguien los escribe, no se genera ninguna clase y se nota al instante. Un color nuevo se agrega como token en `globals.css` y aquí.
 
 ---
 
@@ -243,7 +244,7 @@ Son strings, no componentes, para que `{...register()}` de react-hook-form siga 
 - Con `aria-invalid` el borde se pone rojo solo.
 - `claseGrupoCampo` (`flex flex-col gap-2`) separa etiqueta, campo y mensaje. Etiqueta, ayuda y error no traen margen propio.
 - `claseCasilla` para checkboxes y radios: tamaño 16px y palomita en `verde-claro` (`accent-color`).
-- **Reemplaza a `inputClass` de `lib/team-ui.ts`**, que es del diseño viejo y se borra al terminar la migración.
+- Sustituyó a `inputClass` (diseño viejo, ya borrado).
 
 ### Página — `components/ui/pagina.tsx`
 Esqueleto de toda página interior (todas menos la portada):
@@ -278,7 +279,7 @@ Foto redonda de un jugador (`rounded-full border-borde bg-superficie-2`, `object
 ### Ya adaptados (sin cambiar cómo se usan)
 - **`Modal`**: `bg-superficie`, `rounded-panel`, borde fino, título `text-subtitulo`, botón de cerrar con ícono SVG.
 - **`FormInput`**: usa `claseCampo`, conecta `<label>` con `<input>` por `id` y anuncia el error al lector de pantalla.
-- **`LoadingButton`**: es el `Boton` primario `lg` a todo lo ancho. Se desactiva mientras carga (evita el doble envío). Las props `btnColor` y `textColor` quedan **obsoletas** y ya no hacen nada: bórralas al migrar login y registro.
+- **`LoadingButton`**: es el `Boton` primario `lg` a todo lo ancho. Se desactiva mientras carga (evita el doble envío). Acepta `variante`; las props viejas `btnColor` y `textColor` ya se borraron.
 - **`Spinner`**: colores por defecto para fondo oscuro; ya no trae `mr-2`.
 - **Toasts** (`<Toaster>` en `layout.tsx`): superficie oscura, borde fino, ícono verde o rojo.
 
@@ -464,7 +465,7 @@ Cuando haya fotos (dato para el futuro):
 - Marcar el estado de un campo con `aria-invalid` y dejar que el estilo reaccione solo.
 
 ### No hacer
-- No usar la paleta vieja: `gray-*`, `pink-*`, `yellow-*` ni degradados.
+- No usar degradados (salvo la franja tricolor y el desvanecido de la cinta de logos). La paleta vieja ya ni existe.
 - No poner `shadow-*` en tarjetas.
 - No usar radios menores a 12px en contenedores.
 - No usar `rojo` ni `verde` como color de **texto** (no se leen): para texto van `rojo-claro` y `verde-claro`.
@@ -476,6 +477,8 @@ Cuando haya fotos (dato para el futuro):
 ---
 
 ## Guía de migración (clase vieja → nueva)
+
+> Histórica: la migración terminó el 2026-09-25. Se conserva como diccionario por si aparece código viejo (una rama antigua, un ejemplo copiado de internet).
 
 | Antes | Ahora |
 |---|---|
@@ -511,7 +514,7 @@ Cuando haya fotos (dato para el futuro):
 - [x] `lib/cn.ts`
 - [x] `components/ui/`: `boton`, `insignia`, `tarjeta`, `campo`
 - [x] Adaptados: `modal`, `form-input`, `loading-button`, `spinner`, toasts
-- [ ] Borrar `tailwind.config.ts` (no se usa en Tailwind v4)
+- [x] Borrar `tailwind.config.ts` (no se usa en Tailwind v4)
 - [x] `tonoEstadoPartido` y `tonoEstadoTemporada` en `lib/`
 - [x] Componentes de partido compartidos: `partido-tarjeta`, `partido-compacto`, `partido-detalle-modal`, `logo-equipo`, `selector-temporada`
 
@@ -531,5 +534,5 @@ Cuando haya fotos (dato para el futuro):
 - [x] `app/manejar-temporadas/*` (+ `ui/chip.ts`, `Nota`)
 
 **Cierre**
-- [ ] Borrar `inputClass`, `claseEstadoPartido`, `claseEstado` y las props obsoletas de `LoadingButton`
-- [ ] Apagar la paleta por defecto de Tailwind (`--color-*: initial;`) y corregir lo que falle
+- [x] Borrar `inputClass`, `claseEstadoPartido`, `claseEstado` y las props obsoletas de `LoadingButton`
+- [x] Apagar la paleta por defecto de Tailwind (`--color-*: initial;`). No hubo que corregir nada: se verificó que todas las clases de color del proyecto usan tokens.

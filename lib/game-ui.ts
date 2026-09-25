@@ -45,13 +45,6 @@ export const tonoEstadoPartido: Record<GameStatus, TonoInsignia> = {
 /** Un partido ganado por default lleva esta insignia además de su estado. */
 export const tonoDefault: TonoInsignia = 'aviso';
 
-/** @deprecated Diseño viejo. Usa `tonoEstadoPartido` con <Insignia>. Se borra al terminar la migración. */
-export const claseEstadoPartido: Record<GameStatus, string> = {
-    programado: 'border-yellow-500/40 text-yellow-300',
-    finalizado: 'border-green-500/40 text-green-300',
-    suspendido: 'border-red-500/40 text-red-300',
-};
-
 // ---------------------------------------------------------------------------
 // FECHAS
 // ---------------------------------------------------------------------------

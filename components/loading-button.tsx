@@ -6,10 +6,6 @@ type LoadingButtonProps = {
     loading: boolean;
     variante?: VarianteBoton;
     children: React.ReactNode;
-    /** @deprecated Diseño viejo. Ya no hace nada: usa `variante`. Bórralo al migrar la página. */
-    btnColor?: string;
-    /** @deprecated Diseño viejo. Ya no hace nada: el color del texto lo pone `variante`. Bórralo al migrar la página. */
-    textColor?: string;
 };
 
 /**

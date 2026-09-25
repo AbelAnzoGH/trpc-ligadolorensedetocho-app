@@ -57,13 +57,6 @@ export const tonoEstadoTemporada: Record<SeasonStatus, TonoInsignia> = {
     cerrada: 'contorno',
 };
 
-/** @deprecated Diseño viejo. Usa `tonoEstadoTemporada` con <Insignia>. Se borra al terminar la migración. */
-export const claseEstado: Record<SeasonStatus, string> = {
-    inscripciones: 'border-yellow-500/40 text-yellow-300',
-    activa: 'border-green-500/40 text-green-300',
-    cerrada: 'border-gray-600 text-gray-400',
-};
-
 // ---------------------------------------------------------------------------
 // TIPOS DE RESPUESTA
 // ---------------------------------------------------------------------------

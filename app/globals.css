@@ -13,11 +13,17 @@
      --font-sans           → la fuente por defecto de todo el sitio
    Además quedan disponibles como variables CSS normales: var(--color-rojo).
 
-   Ojo: tailwind.config.ts YA NO se usa. En v4 solo se leería si este
-   archivo tuviera `@config`, y no lo tiene. Los tokens viven aquí.
+   Aquí viven TODOS los tokens: en Tailwind v4 no hay tailwind.config.ts
+   (el que existía nunca se leía y se borró).
    =========================================================================== */
 
 @theme {
+  /* Apaga la paleta por defecto de Tailwind (gray-800, pink-500, white…).
+     Solo existen los colores de abajo: si alguien escribe `bg-gray-900`,
+     simplemente no se genera y se nota al instante. Va PRIMERO para que
+     no borre los nuestros. */
+  --color-*: initial;
+
   /* ---------- Superficies (de atrás hacia adelante) ---------- */
   --color-canvas: #09090b;        /* fondo de la página */
   --color-superficie: #18181b;    /* tarjetas, modales, paneles */
