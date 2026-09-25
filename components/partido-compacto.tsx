@@ -1,7 +1,10 @@
 import LogoEquipo from '@/components/logo-equipo';
+import Insignia from '@/components/ui/insignia';
 import { etiquetaCategoria } from '@/lib/team-ui';
 import {
     etiquetaEstadoPartido,
+    tonoEstadoPartido,
+    tonoDefault,
     formatoFechaPartido,
     formatoHoraPartido,
     type Game,
@@ -20,6 +23,10 @@ const dosDigitos = (n: number) => String(n).padStart(2, '0');
  * están a un clic, en PartidoDetalleModal. Es un <button> para que se pueda
  * abrir también con el teclado; el aria-label dice quién juega, porque los
  * logos solos no se leen.
+ *
+ * Diseño: es un elemento clicable, así que al hover sube un nivel
+ * (bg-superficie-2 + borde fuerte), como toda tarjeta interactiva. El foco
+ * de teclado lo pone el :focus-visible global.
  */
 export default function PartidoCompacto({
     partido: p,
@@ -35,16 +42,12 @@ export default function PartidoCompacto({
     const visitante = p.awayTeamSeason.team;
     const jugado = p.status === 'finalizado';
 
-    // Sin jugar: 00 y 00 en gris. Jugado: el marcador real, y el ganador
-    // resaltado (en un empate, los dos).
+    // Sin jugar: 00 y 00 apagados. Jugado: el marcador real, el ganador en
+    // tinta y el perdedor en tenue (en un empate, los dos en tinta).
     const marcadorLocal = jugado ? dosDigitos(p.homeScore!) : '00';
     const marcadorVisitante = jugado ? dosDigitos(p.awayScore!) : '00';
     const claseMarcador = (propio: number | null, rival: number | null) =>
-        !jugado
-            ? 'text-gray-600'
-            : propio! >= rival!
-              ? 'text-white'
-              : 'text-gray-500';
+        !jugado ? 'text-apagado' : propio! >= rival! ? 'text-tinta' : 'text-tenue';
 
     const cuando = soloHora ? formatoHoraPartido(p.scheduledAt) : formatoFechaPartido(p.scheduledAt);
 
@@ -54,31 +57,29 @@ export default function PartidoCompacto({
                 type="button"
                 onClick={onAbrir}
                 aria-label={`${local.name} contra ${visitante.name}, ${cuando}. Ver detalles.`}
-                className="w-full space-y-3 rounded-xl border border-gray-800 bg-gray-900/40 p-4 transition hover:border-pink-500/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
+                className="w-full space-y-3 rounded-item border border-borde bg-superficie p-4 transition-colors hover:border-borde-fuerte hover:bg-superficie-2"
             >
-                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
-                    <span className="font-semibold text-gray-200">{cuando}</span>
-                    <span className="text-gray-400">· {etiquetaCategoria[p.homeTeamSeason.category]}</span>
+                {/* min-h-6: con o sin insignia, la fila mide lo mismo y las
+                    tarjetas quedan parejas en la rejilla. */}
+                <div className="flex min-h-6 flex-wrap items-center justify-center gap-x-2 gap-y-1 text-meta">
+                    <span className="font-medium text-tinta-2">{cuando}</span>
+                    <span className="text-tenue">· {etiquetaCategoria[p.homeTeamSeason.category]}</span>
                     {/* Solo se avisa lo que NO es normal: un programado no lleva etiqueta. */}
                     {p.status !== 'programado' && (
-                        <span
-                            className={`rounded-full border px-2 py-0.5 text-xs ${
-                                jugado ? 'border-green-500/40 text-green-300' : 'border-red-500/40 text-red-300'
-                            }`}
-                        >
+                        <Insignia tono={p.isForfeit ? tonoDefault : tonoEstadoPartido[p.status]}>
                             {p.isForfeit ? 'Default' : etiquetaEstadoPartido[p.status]}
-                        </span>
+                        </Insignia>
                     )}
                 </div>
 
                 <div className="flex items-center justify-between gap-2">
-                    <span className={`w-10 text-center text-2xl font-bold tabular-nums ${claseMarcador(p.homeScore, p.awayScore)}`}>
+                    <span className={`w-12 text-center text-titulo-sm leading-none font-bold tabular-nums ${claseMarcador(p.homeScore, p.awayScore)}`}>
                         {marcadorLocal}
                     </span>
                     <LogoEquipo nombre={local.name} logoUrl={local.logoUrl} />
-                    <span className="text-sm font-semibold text-gray-500">vs</span>
+                    <span className="text-leyenda font-medium uppercase tracking-wider text-apagado">vs</span>
                     <LogoEquipo nombre={visitante.name} logoUrl={visitante.logoUrl} />
-                    <span className={`w-10 text-center text-2xl font-bold tabular-nums ${claseMarcador(p.awayScore, p.homeScore)}`}>
+                    <span className={`w-12 text-center text-titulo-sm leading-none font-bold tabular-nums ${claseMarcador(p.awayScore, p.homeScore)}`}>
                         {marcadorVisitante}
                     </span>
                 </div>

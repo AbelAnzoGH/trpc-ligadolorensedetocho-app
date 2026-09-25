@@ -1,5 +1,6 @@
 import type { SeasonStatus } from '@/lib/season-schema';
 import type { TeamCategory } from '@/lib/team-schema';
+import type { TonoInsignia } from '@/components/ui/insignia';
 
 /**
  * Piezas compartidas por TODAS las pantallas que hablan de temporadas.
@@ -46,11 +47,14 @@ export const etiquetaEstado: Record<SeasonStatus, string> = {
     cerrada: 'Cerrada',
 };
 
-/** Colores de la etiqueta de estado sobre el fondo oscuro. */
-export const claseEstado: Record<SeasonStatus, string> = {
-    inscripciones: 'border-yellow-500/40 text-yellow-300',
-    activa: 'border-green-500/40 text-green-300',
-    cerrada: 'border-gray-600 text-gray-400',
+/**
+ * Tono de la <Insignia> de cada estado de temporada
+ * (design.md → Estados → tono de insignia).
+ */
+export const tonoEstadoTemporada: Record<SeasonStatus, TonoInsignia> = {
+    inscripciones: 'aviso',
+    activa: 'exito',
+    cerrada: 'contorno',
 };
 
 // ---------------------------------------------------------------------------

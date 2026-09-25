@@ -1,6 +1,6 @@
 'use client';
 
-import { inputClass } from '@/lib/team-ui';
+import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
 import { romano, etiquetaEstado, type League } from '@/lib/season-ui';
 
 /**
@@ -35,20 +35,20 @@ export default function SelectorTemporada({
     };
 
     if (ligas.length === 0) {
-        return <p className="text-sm text-gray-400">Todavía no hay ligas registradas.</p>;
+        return <p className="text-meta text-tenue">Todavía no hay ligas registradas.</p>;
     }
 
     return (
         <div className="flex flex-wrap items-end gap-3">
-            <div className="flex flex-col gap-1">
-                <label htmlFor={`${idPrefix}-liga`} className="text-sm text-gray-300">
+            <div className={claseGrupoCampo}>
+                <label htmlFor={`${idPrefix}-liga`} className={claseEtiqueta}>
                     Liga
                 </label>
                 <select
                     id={`${idPrefix}-liga`}
                     value={ligaActual?.id ?? ''}
                     onChange={(e) => cambiarLiga(e.target.value)}
-                    className={inputClass}
+                    className={`${claseCampo} min-w-40`}
                 >
                     {!ligaActual && <option value="">Elige una liga</option>}
                     {ligas.map((liga) => (
@@ -60,8 +60,8 @@ export default function SelectorTemporada({
                 </select>
             </div>
 
-            <div className="flex flex-col gap-1">
-                <label htmlFor={`${idPrefix}-temporada`} className="text-sm text-gray-300">
+            <div className={claseGrupoCampo}>
+                <label htmlFor={`${idPrefix}-temporada`} className={claseEtiqueta}>
                     Temporada
                 </label>
                 <select
@@ -69,7 +69,7 @@ export default function SelectorTemporada({
                     value={seasonId}
                     onChange={(e) => onChange(e.target.value)}
                     disabled={!ligaActual}
-                    className={inputClass}
+                    className={`${claseCampo} min-w-56`}
                 >
                     {ligaActual?.seasons.map((s) => (
                         <option key={s.id} value={s.id}>

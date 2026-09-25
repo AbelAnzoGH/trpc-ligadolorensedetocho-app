@@ -2,6 +2,7 @@
 
 import { teamCategories, type TeamCategory } from '@/lib/team-schema';
 import { etiquetaCategoria } from '@/lib/team-ui';
+import { claseChip } from '@/components/ui/chip';
 
 /**
  * Las categorías de una temporada como botones que se prenden y apagan.
@@ -42,12 +43,7 @@ export default function CategoriasTemporada({
                         aria-pressed={activa}
                         disabled={deshabilitado}
                         onClick={() => alternar(c)}
-                        className={
-                            'rounded-full border px-3 py-1 text-xs transition disabled:opacity-50 ' +
-                            (activa
-                                ? 'border-pink-500 bg-pink-500/15 text-pink-300'
-                                : 'border-gray-700 text-gray-500 hover:text-gray-300')
-                        }
+                        className={claseChip(activa)}
                     >
                         {etiquetaCategoria[c]}
                     </button>

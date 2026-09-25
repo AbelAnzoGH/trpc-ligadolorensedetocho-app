@@ -1,5 +1,6 @@
 'use client';
 
+import { claseChip } from '@/components/ui/chip';
 import { playerPositions, type PlayerPosition } from '@/lib/player-schema';
 import { etiquetaPosicion } from '@/lib/player-ui';
 
@@ -7,6 +8,10 @@ import { etiquetaPosicion } from '@/lib/player-ui';
  * Selector de posiciones múltiples.
  * Se ve como una fila de "chips" pero por debajo son checkboxes de verdad,
  * para que funcione con teclado y con lectores de pantalla.
+ *
+ * Diseño (design.md → Chips seleccionables): claseChip, la misma de las
+ * categorías de temporada. Como el checkbox está oculto (sr-only), el anillo
+ * de foco se dibuja en la etiqueta (claseChip lo resuelve con has-[:focus-visible]).
  */
 export default function PosicionesCheckboxes({
     value,
@@ -28,15 +33,7 @@ export default function PosicionesCheckboxes({
             {playerPositions.map((posicion) => {
                 const activa = value.includes(posicion);
                 return (
-                    <label
-                        key={posicion}
-                        title={etiquetaPosicion[posicion]}
-                        className={`cursor-pointer rounded-full border px-3 py-1 text-sm font-semibold transition ${
-                            activa
-                                ? 'border-pink-500 bg-pink-500/20 text-pink-300'
-                                : 'border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'
-                        }`}
-                    >
+                    <label key={posicion} title={etiquetaPosicion[posicion]} className={claseChip(activa)}>
                         <input
                             type="checkbox"
                             className="sr-only"

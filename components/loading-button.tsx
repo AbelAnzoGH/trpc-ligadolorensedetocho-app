@@ -1,35 +1,39 @@
 import React from 'react';
-import { twMerge } from 'tailwind-merge';
 import Spinner from './spinner';
+import { claseBoton, type VarianteBoton } from './ui/boton';
 
 type LoadingButtonProps = {
     loading: boolean;
-    btnColor?: string;
-    textColor?: string;
+    variante?: VarianteBoton;
     children: React.ReactNode;
 };
 
+/**
+ * Botón de envío de formulario que muestra un spinner mientras espera.
+ * Por dentro es el mismo botón del sistema (claseBoton), a todo lo ancho.
+ */
 export const LoadingButton: React.FC<LoadingButtonProps> = ({
-    textColor = 'text-white',
-    btnColor = 'bg-gradient-to-r from-pink-500 to-yellow-500',
-    children,
     loading = false,
+    variante = 'primario',
+    children,
 }) => {
     return (
         <button
-            type='submit'
-            className={twMerge(
-                `w-full py-3 font-semibold rounded-lg outline-none border-none flex justify-center`,
-                `${btnColor} ${loading && 'bg-[#ccc]'}`
-            )}
+            type="submit"
+            // disabled mientras carga: evita que un doble clic mande el
+            // formulario dos veces.
+            disabled={loading}
+            aria-busy={loading}
+            className={claseBoton({ variante, tamano: 'lg', anchoCompleto: true })}
         >
             {loading ? (
-                <div className='flex items-center gap-3'>
-                    <Spinner />
-                    <span className='text-gray-200 inline-block'>Loading...</span>
-                </div>
+                <>
+                    {/* El botón primario es claro, así que el spinner va oscuro. */}
+                    <Spinner color="text-canvas/20" bgColor="fill-canvas" />
+                    <span>Cargando…</span>
+                </>
             ) : (
-                <span className={`${textColor}`}>{children}</span>
+                children
             )}
         </button>
     );

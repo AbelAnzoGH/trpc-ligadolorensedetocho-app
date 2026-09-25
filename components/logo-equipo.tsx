@@ -33,7 +33,7 @@ export default function LogoEquipo({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoUrl} alt={nombre} className="h-full w-full object-contain" />
             ) : (
-                <span className="font-bold text-gray-400" style={{ fontSize: tamano * 0.32 }} aria-label={nombre}>
+                <span className="font-bold text-tenue" style={{ fontSize: tamano * 0.32 }} aria-label={nombre}>
                     {iniciales}
                 </span>
             )}

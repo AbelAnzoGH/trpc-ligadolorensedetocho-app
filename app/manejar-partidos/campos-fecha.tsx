@@ -1,6 +1,7 @@
 'use client';
 
-import { inputClass } from '@/lib/team-ui';
+import { cn } from '@/lib/cn';
+import { claseCampo } from '@/components/ui/campo';
 import { separarFechaHora } from '@/lib/game-ui';
 
 /**
@@ -53,7 +54,8 @@ export function CampoFecha({
     const anios = [anioActual - 1, anioActual, anioActual + 1, anioActual + 2];
     if (!anios.includes(a)) anios.unshift(a); // un partido viejo de otro año
 
-    const select = `${inputClass} px-2`;
+    // cn() y no un template string: px-2.5 choca con el px-3.5 de claseCampo.
+    const select = cn(claseCampo, 'px-2.5');
 
     return (
         <div className="flex gap-1">
@@ -113,7 +115,7 @@ export function CampoHora({
     const minutos = Array.from({ length: 12 }, (_, i) => dos(i * 5));
     if (!minutos.includes(min)) minutos.push(min);
 
-    const select = `${inputClass} px-2`;
+    const select = cn(claseCampo, 'px-2.5');
 
     return (
         <div className="flex items-center gap-1">
@@ -129,7 +131,7 @@ export function CampoHora({
                     <option key={n} value={n}>{n}</option>
                 ))}
             </select>
-            <span className="text-gray-400">:</span>
+            <span className="text-tenue">:</span>
             <select
                 aria-label="Minutos"
                 value={vacio ? '' : min}

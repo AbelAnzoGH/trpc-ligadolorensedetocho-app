@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { TRPCError } from '@trpc/server';
 import Header from '@/components/header';
+import Insignia from '@/components/ui/insignia';
+import { Pagina, EncabezadoPagina } from '@/components/ui/pagina';
 import { createAsyncCaller } from '@/app/api/trpc/trpc-router';
-import { nombreTemporada, etiquetaEstado, claseEstado } from '@/lib/season-ui';
+import { nombreTemporada, etiquetaEstado, tonoEstadoTemporada } from '@/lib/season-ui';
 import type { Game } from '@/lib/game-ui';
 import TemporadaEquipos from './temporada-equipos';
 import TemporadaPartidos from './temporada-partidos';
@@ -63,31 +65,39 @@ export default async function TemporadaPage({
     return (
         <>
             <Header />
-            <section className="min-h-screen bg-gray-950 pt-12 pb-20">
-                <div className="mx-auto max-w-4xl px-4">
-                    <p className="mb-2 text-center text-sm">
-                        <Link href="/ligas" className="text-gray-500 hover:text-pink-400">
-                            ← Todas las temporadas
-                        </Link>
-                    </p>
-                    <h1 className="mb-3 bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text text-center text-4xl font-bold text-transparent lg:text-5xl">
-                        {titulo}
-                    </h1>
-                    <p className="mb-8 text-center">
-                        <span className={`rounded-full border px-3 py-1 text-sm ${claseEstado[season.status]}`}>
-                            {etiquetaEstado[season.status]}
-                        </span>
-                    </p>
+            <Pagina>
+                {/* Miga de pan: de dónde viene esta página. */}
+                <Link
+                    href="/ligas"
+                    className="mb-6 inline-flex items-center gap-1.5 text-meta text-tenue transition-colors hover:text-tinta"
+                >
+                    <span aria-hidden>←</span> Todas las temporadas
+                </Link>
 
-                    {/* Cada sección de la temporada es un componente aparte:
-                        agregar una (la tabla de posiciones, el próximo sprint)
-                        es agregar una línea aquí, sin reescribir la página. */}
-                    <div className="space-y-12">
-                        <TemporadaPartidos partidos={partidos} categorias={season.categories} />
-                        <TemporadaEquipos inscripciones={season.teamSeasons} temporada={titulo} />
-                    </div>
+                <EncabezadoPagina
+                    titulo={titulo}
+                    descripcion={
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                            <Insignia tono={tonoEstadoTemporada[season.status]}>
+                                {etiquetaEstado[season.status]}
+                            </Insignia>
+                            <span>
+                                {season.teamSeasons.length}{' '}
+                                {season.teamSeasons.length === 1 ? 'equipo' : 'equipos'} · {partidos.length}{' '}
+                                {partidos.length === 1 ? 'partido' : 'partidos'}
+                            </span>
+                        </span>
+                    }
+                />
+
+                {/* Cada sección de la temporada es un componente aparte:
+                    agregar una (la tabla de posiciones, el próximo sprint)
+                    es agregar una línea aquí, sin reescribir la página. */}
+                <div className="space-y-16">
+                    <TemporadaPartidos partidos={partidos} categorias={season.categories} />
+                    <TemporadaEquipos inscripciones={season.teamSeasons} temporada={titulo} />
                 </div>
-            </section>
+            </Pagina>
         </>
     );
 }

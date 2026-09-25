@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Modal from '@/components/modal';
-import Spinner from '@/components/spinner';
+import Avatar from '@/components/ui/avatar';
+import Insignia from '@/components/ui/insignia';
+import { Cargando, MensajeError, Vacio } from '@/components/ui/estado';
 import { trpcQuery } from '@/utils/trpc-fetch';
 import { etiquetaCategoria } from '@/lib/team-ui';
 import type { TeamSeason } from '@/lib/season-ui';
@@ -102,94 +104,53 @@ export default function EquipoRosterModal({
             }
         >
             {/* ---------- Cargando ---------- */}
-            {cargando && (
-                <div
-                    className="flex flex-col items-center justify-center gap-3 py-12"
-                    role="status"
-                    aria-live="polite"
-                >
-                    {/* El Spinner viene con `mr-2` pensado para ir dentro de un
-                        botón; aquí está centrado, así que no estorba. Los
-                        colores se sobrescriben con twMerge desde las props. */}
-                    <Spinner
-                        width="2.5rem"
-                        height="2.5rem"
-                        color="text-gray-800"
-                        bgColor="fill-pink-500"
-                    />
-                    <p className="text-sm text-gray-400">Cargando jugadores...</p>
-                </div>
-            )}
+            {cargando && <Cargando texto="Cargando jugadores…" />}
 
             {/* ---------- Error ---------- */}
-            {!cargando && error && (
-                <p className="py-8 text-center text-red-400">Error: {error}</p>
-            )}
+            {!cargando && error && <MensajeError>Error: {error}</MensajeError>}
 
             {/* ---------- Equipo sin jugadores ---------- */}
             {!cargando && !error && jugadores.length === 0 && (
-                <p className="py-8 text-center text-gray-400">
-                    Este equipo todavía no tiene jugadores registrados en esta temporada.
-                </p>
+                <Vacio>Este equipo todavía no tiene jugadores registrados en esta temporada.</Vacio>
             )}
 
             {/* ---------- Listado ---------- */}
             {!cargando && !error && jugadores.length > 0 && (
-                <ul className="divide-y divide-gray-800">
+                <ul className="divide-y divide-borde">
                     {jugadores.map((membresia) => {
                         const { player: jugador } = membresia;
-                        const iniciales =
-                            `${jugador.name[0] ?? ''}${jugador.lastName[0] ?? ''}`.toUpperCase();
 
                         return (
                             <li key={membresia.id} className="flex items-center gap-4 py-3">
-                                {/* --- Foto --- */}
-                                {/* Tamaño fijo + shrink-0: la foto nunca se
-                                    encoge aunque el nombre sea largo. */}
-                                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-gray-800 bg-gray-900">
-                                    {membresia.photoUrl ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            src={membresia.photoUrl}
-                                            alt={`Foto de ${jugador.name} ${jugador.lastName}`}
-                                            loading="lazy"
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        // Respaldo con iniciales: sin esto, los
-                                        // jugadores sin foto dejarían huecos.
-                                        <div
-                                            aria-hidden
-                                            className="flex h-full w-full items-center justify-center bg-linear-to-br from-pink-500 to-yellow-500 text-lg font-bold text-white"
-                                        >
-                                            {iniciales}
-                                        </div>
-                                    )}
-                                </div>
+                                {/* --- Foto (o iniciales) --- */}
+                                <Avatar
+                                    src={membresia.photoUrl}
+                                    nombre={jugador.name}
+                                    apellido={jugador.lastName}
+                                    tamano={52}
+                                />
 
                                 {/* --- Nombre y posiciones --- */}
                                 {/* min-w-0 es lo que permite que `truncate`
                                     funcione dentro de un flex. */}
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate font-semibold text-white">
+                                    <p className="truncate font-semibold text-tinta">
                                         {jugador.name} {jugador.lastName}
                                     </p>
-                                    <div className="mt-1 flex flex-wrap gap-1.5">
+                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
                                         {membresia.positions.map((posicion) => (
-                                            <span
-                                                key={posicion}
-                                                title={etiquetaPosicion[posicion]}
-                                                className="rounded-full border border-gray-700 px-2 py-0.5 text-[11px] font-semibold text-gray-300"
-                                            >
+                                            <Insignia key={posicion} tono="contorno" title={etiquetaPosicion[posicion]}>
                                                 {posicion}
-                                            </span>
+                                            </Insignia>
                                         ))}
                                     </div>
                                 </div>
 
                                 {/* --- Número de camiseta --- */}
-                                <span className="shrink-0 font-mono text-2xl font-bold text-pink-400">
-                                    #{membresia.jerseyNumber}
+                                {/* El "#" en apagado: el número es lo que se lee. */}
+                                <span className="shrink-0 text-subtitulo font-bold tabular-nums text-tinta">
+                                    <span className="text-apagado">#</span>
+                                    {membresia.jerseyNumber}
                                 </span>
                             </li>
                         );

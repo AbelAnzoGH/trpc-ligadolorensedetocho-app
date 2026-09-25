@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ACCEPT_IMAGENES, TAMANO_MAXIMO_MB, validarImagen } from '@/lib/imagen';
+import { claseAyuda, claseError, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
 
 /**
  * Selector de imagen con vista previa.
@@ -68,14 +69,14 @@ export default function SelectorImagen({
     const preview = previewLocal ?? urlActual;
 
     return (
-        <div className="flex flex-col gap-2">
-            <span className="text-sm text-gray-300">
-                {etiqueta}{' '}
-                <span className="text-gray-500">(opcional)</span>
+        <div className={claseGrupoCampo}>
+            <span className={claseEtiqueta}>
+                {etiqueta} <span className="font-normal text-tenue">(opcional)</span>
             </span>
 
             <div className="flex items-center gap-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-gray-700 bg-gray-950/60">
+                {/* Borde punteado: es el hueco donde irá la imagen. */}
+                <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-item border border-dashed border-borde-fuerte bg-canvas">
                     {preview ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -84,23 +85,21 @@ export default function SelectorImagen({
                             className="h-full w-full object-contain"
                         />
                     ) : (
-                        <span className="text-[10px] uppercase tracking-widest text-gray-600">
-                            Sin logo
-                        </span>
+                        <span className="text-leyenda text-tenue">Sin imagen</span>
                     )}
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex min-w-0 flex-col gap-2">
+                    {/* file: estiliza el botón nativo "Elegir archivo" para que
+                        se vea como un <Boton variante="secundario" tamano="sm">. */}
                     <input
                         type="file"
                         accept={ACCEPT_IMAGENES}
                         onChange={onCambiarArchivo}
-                        className="block w-full text-sm text-gray-400 file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-gray-800 file:px-4 file:py-1.5 file:text-sm file:font-semibold file:text-gray-200 hover:file:bg-gray-700"
+                        className="block w-full text-meta text-tenue file:mr-3 file:h-8 file:cursor-pointer file:rounded-control file:border file:border-solid file:border-borde-fuerte file:bg-transparent file:px-3 file:text-meta file:font-medium file:text-tinta-2 file:transition-colors hover:file:bg-superficie-2 hover:file:text-tinta"
                     />
 
-                    <p className="text-xs text-gray-500">
-                        PNG, JPG o WEBP · máximo {TAMANO_MAXIMO_MB} MB
-                    </p>
+                    <p className={claseAyuda}>PNG, JPG o WEBP · máximo {TAMANO_MAXIMO_MB} MB</p>
 
                     {preview && (
                         <button
@@ -109,15 +108,15 @@ export default function SelectorImagen({
                                 setError(null);
                                 onQuitar();
                             }}
-                            className="self-start text-xs font-semibold text-red-400 hover:text-red-300"
+                            className="self-start text-leyenda font-medium text-rojo-claro underline-offset-4 hover:underline"
                         >
-                            Quitar logo
+                            Quitar imagen
                         </button>
                     )}
                 </div>
             </div>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className={claseError}>{error}</p>}
         </div>
     );
 }

@@ -4,7 +4,10 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import Modal from '@/components/modal';
 import { trpcMutation } from '@/utils/trpc-fetch';
-import { etiquetaCategoria, inputClass } from '@/lib/team-ui';
+import { etiquetaCategoria } from '@/lib/team-ui';
+import { cn } from '@/lib/cn';
+import Boton from '@/components/ui/boton';
+import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
 import { PUNTOS_DEFAULT } from '@/lib/game-schema';
 import { formatoFechaPartido, type Game } from '@/lib/game-ui';
 
@@ -79,8 +82,9 @@ export default function MarcadorModal({
     const onDeshacer = () =>
         ejecutar(() => trpcMutation('undoResult', { id: partido.id }), 'Resultado deshecho: el partido vuelve a programado');
 
-    const botonSecundario =
-        'rounded-full border px-4 py-2 text-sm transition disabled:opacity-50';
+    // Campo del marcador: grande y centrado, se lee de un vistazo. Con cn()
+    // porque cambia el alto, el relleno y el tamaño de letra de claseCampo.
+    const campoMarcador = cn(claseCampo, 'h-14 w-full py-0 text-center text-titulo-sm font-bold tabular-nums');
 
     return (
         <Modal
@@ -91,16 +95,16 @@ export default function MarcadorModal({
         >
             <div className="space-y-6">
                 {/* ---------- Marcador ---------- */}
-                <form onSubmit={onGuardar} className="space-y-3">
-                    <h3 className="font-semibold text-white">Marcador</h3>
+                <form onSubmit={onGuardar} className="space-y-4">
+                    <h3 className="text-cuerpo font-semibold text-tinta">Marcador</h3>
                     {partido.isForfeit && (
-                        <p className="text-sm text-yellow-300">
+                        <p className="text-meta text-aviso">
                             Este partido está como default. Guardar un marcador lo convierte en partido jugado.
                         </p>
                     )}
                     <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
-                        <div className="flex flex-col gap-1">
-                            <label htmlFor="m-local" className="truncate text-sm text-gray-300">{nombreLocal}</label>
+                        <div className={cn(claseGrupoCampo, 'min-w-0')}>
+                            <label htmlFor="m-local" className={cn(claseEtiqueta, 'truncate')}>{nombreLocal}</label>
                             <input
                                 id="m-local"
                                 type="number"
@@ -108,12 +112,12 @@ export default function MarcadorModal({
                                 inputMode="numeric"
                                 value={local}
                                 onChange={(e) => setLocal(e.target.value)}
-                                className={`${inputClass} text-center text-2xl font-bold`}
+                                className={campoMarcador}
                             />
                         </div>
-                        <span className="pb-3 text-gray-500">–</span>
-                        <div className="flex flex-col gap-1">
-                            <label htmlFor="m-visitante" className="truncate text-sm text-gray-300">{nombreVisitante}</label>
+                        <span className="pb-4 text-apagado">–</span>
+                        <div className={cn(claseGrupoCampo, 'min-w-0')}>
+                            <label htmlFor="m-visitante" className={cn(claseEtiqueta, 'truncate')}>{nombreVisitante}</label>
                             <input
                                 id="m-visitante"
                                 type="number"
@@ -121,62 +125,51 @@ export default function MarcadorModal({
                                 inputMode="numeric"
                                 value={visitante}
                                 onChange={(e) => setVisitante(e.target.value)}
-                                className={`${inputClass} text-center text-2xl font-bold`}
+                                className={campoMarcador}
                             />
                         </div>
                     </div>
-                    <button
-                        type="submit"
-                        disabled={guardando}
-                        className="w-full rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-5 py-2 font-semibold text-white transition duration-300 hover:bg-linear-to-l disabled:opacity-50"
-                    >
+                    <Boton type="submit" anchoCompleto disabled={guardando}>
                         {finalizado ? 'Corregir marcador' : 'Guardar resultado'}
-                    </button>
+                    </Boton>
                 </form>
 
                 {/* ---------- Default ---------- */}
-                <div className="space-y-3 border-t border-gray-800 pt-4">
-                    <h3 className="font-semibold text-white">Ganado por default</h3>
-                    <p className="text-sm text-gray-400">
+                <div className="space-y-3 border-t border-borde pt-5">
+                    <h3 className="text-cuerpo font-semibold text-tinta">Ganado por default</h3>
+                    <p className="text-meta text-tenue">
                         El equipo que no se presentó pierde 0 a {PUNTOS_DEFAULT}. Si no llegó ninguno, cierra
                         esta ventana y suspende el partido para reprogramarlo.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                        <button
-                            type="button"
+                        <Boton
+                            variante="secundario"
                             disabled={guardando}
                             onClick={() => onDefault(partido.homeTeamSeason.id, nombreLocal)}
-                            className={`${botonSecundario} border-yellow-500/60 text-yellow-300 hover:text-yellow-200`}
                         >
                             No llegó {nombreLocal}
-                        </button>
-                        <button
-                            type="button"
+                        </Boton>
+                        <Boton
+                            variante="secundario"
                             disabled={guardando}
                             onClick={() => onDefault(partido.awayTeamSeason.id, nombreVisitante)}
-                            className={`${botonSecundario} border-yellow-500/60 text-yellow-300 hover:text-yellow-200`}
                         >
                             No llegó {nombreVisitante}
-                        </button>
+                        </Boton>
                     </div>
                 </div>
 
                 {/* ---------- Deshacer ---------- */}
                 {finalizado && (
-                    <div className="space-y-3 border-t border-gray-800 pt-4">
-                        <h3 className="font-semibold text-white">¿Resultado capturado por error?</h3>
-                        <p className="text-sm text-gray-400">
+                    <div className="space-y-3 border-t border-borde pt-5">
+                        <h3 className="text-cuerpo font-semibold text-tinta">¿Resultado capturado por error?</h3>
+                        <p className="text-meta text-tenue">
                             Regresa el partido a &quot;programado&quot; y borra el marcador. Después ya puedes
                             reprogramarlo, editarlo o borrarlo.
                         </p>
-                        <button
-                            type="button"
-                            disabled={guardando}
-                            onClick={onDeshacer}
-                            className={`${botonSecundario} border-red-500/60 text-red-400 hover:text-red-300`}
-                        >
+                        <Boton variante="peligro" disabled={guardando} onClick={onDeshacer}>
                             Deshacer resultado
-                        </button>
+                        </Boton>
                     </div>
                 )}
             </div>

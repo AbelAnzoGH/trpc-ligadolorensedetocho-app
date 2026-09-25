@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import Header from '@/components/header';
+import { Pagina, EncabezadoPagina, ContenidoAdmin } from '@/components/ui/pagina';
+import { claseBoton } from '@/components/ui/boton';
+import { claseEnlace } from '@/components/ui/enlace';
 import { getAdminUser } from '@/utils/get-auth-user';
 import EquiposPanel from './equipos-panel';
 
@@ -14,25 +17,30 @@ export default async function ManejarEquiposPage() {
     return (
         <>
             <Header />
-            <section className="min-h-screen bg-gray-950 pt-12 pb-20">
-                <div className="mx-auto max-w-3xl px-4">
-                    <h1 className="mb-2 bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text text-center text-4xl font-bold text-transparent lg:text-5xl">
-                        Manejar equipos
-                    </h1>
-                    <p className="mb-8 text-center text-gray-400">
-                        El nombre y el logo de cada equipo, que se quedan para siempre.
-                        Las inscripciones por temporada, en{' '}
-                        <Link href="/manejar-temporadas" className="text-pink-500 hover:text-pink-400">
-                            Manejar temporadas
-                        </Link>
-                        .{' '}
-                        <Link href="/equipos" className="text-pink-500 hover:text-pink-400">
-                            Ver el listado público
-                        </Link>
-                    </p>
+            <Pagina>
+                <ContenidoAdmin>
+                    <EncabezadoPagina
+                        antetitulo="Administración"
+                        titulo="Equipos"
+                        descripcion={
+                            <>
+                                El nombre y el logo de cada equipo, que se quedan para siempre. Las inscripciones por
+                                temporada, en{' '}
+                                <Link href="/manejar-temporadas" className={claseEnlace}>
+                                    Temporadas
+                                </Link>
+                                .
+                            </>
+                        }
+                        acciones={
+                            <Link href="/equipos" className={claseBoton({ variante: 'secundario', tamano: 'sm' })}>
+                                Ver listado público
+                            </Link>
+                        }
+                    />
                     <EquiposPanel />
-                </div>
-            </section>
+                </ContenidoAdmin>
+            </Pagina>
         </>
     );
 }

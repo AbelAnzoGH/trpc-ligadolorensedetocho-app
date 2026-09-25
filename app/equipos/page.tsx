@@ -1,4 +1,5 @@
 import Header from '@/components/header';
+import { Pagina, EncabezadoPagina } from '@/components/ui/pagina';
 import EquiposTabla from './equipos-tabla';
 
 // Página PÚBLICA: cualquiera puede ver los equipos de la liga, con o sin sesión.
@@ -8,17 +9,13 @@ export default async function EquiposPage() {
     return (
         <>
             <Header />
-            <section className="min-h-screen bg-gray-950 pt-12 pb-20">
-                <div className="mx-auto max-w-3xl px-4">
-                    <h1 className="mb-2 bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text text-center text-4xl font-bold text-transparent lg:text-5xl">
-                        Equipos de la liga
-                    </h1>
-                    <p className="mb-8 text-center text-gray-400">
-                        Los equipos inscritos en cada temporada de nuestras ligas.
-                    </p>
-                    <EquiposTabla />
-                </div>
-            </section>
+            <Pagina>
+                <EncabezadoPagina
+                    titulo="Equipos de la liga"
+                    descripcion="Los equipos inscritos en cada temporada de nuestras ligas."
+                />
+                <EquiposTabla />
+            </Pagina>
         </>
     );
 }

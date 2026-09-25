@@ -8,7 +8,13 @@ import { trpcQuery, trpcMutation } from '@/utils/trpc-fetch';
 import { useLigas } from '@/utils/use-ligas';
 import SelectorTemporada from '@/components/selector-temporada';
 import type { TeamCategory } from '@/lib/team-schema';
-import { etiquetaCategoria, inputClass } from '@/lib/team-ui';
+import { etiquetaCategoria } from '@/lib/team-ui';
+import Boton from '@/components/ui/boton';
+import Tarjeta from '@/components/ui/tarjeta';
+import { TituloSeccion } from '@/components/ui/pagina';
+import { Cargando, MensajeError, Nota, Vacio } from '@/components/ui/estado';
+import { claseCampo } from '@/components/ui/campo';
+import { claseEnlace } from '@/components/ui/enlace';
 import { nombreTemporada, urlTemporada, type TeamSeason, type ListTeamSeasonsResponse } from '@/lib/season-ui';
 import PartidoTarjeta from '@/components/partido-tarjeta';
 import {
@@ -139,8 +145,8 @@ export default function PartidosPanel() {
 
     const onBorrar = (p: Game) => ejecutar(() => trpcMutation('deleteGame', { id: p.id }), 'Partido borrado');
 
-    if (cargando) return <p className="text-gray-300">Cargando ligas...</p>;
-    if (error) return <p className="text-red-400">Error: {error}</p>;
+    if (cargando) return <Cargando texto="Cargando ligas…" />;
+    if (error) return <MensajeError>Error: {error}</MensajeError>;
 
     const temporadaCerrada = elegida?.temporada.status === 'cerrada';
     const categorias = elegida?.temporada.categories ?? [];
@@ -149,38 +155,43 @@ export default function PartidosPanel() {
     const grupos = agruparPorJornada(visibles);
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-8">
             {/* ======================= 1. SEDES ======================= */}
-            <section className="space-y-4 rounded-lg border border-gray-800 bg-gray-900/40 p-6">
-                <h2 className="text-xl font-semibold text-white">1 · Sedes</h2>
+            <Tarjeta variante="panel" as="section">
+                <TituloSeccion paso={1}>Sedes</TituloSeccion>
                 <SedesSeccion sedes={sedes} guardando={guardando} onCrear={onCrearSede} onEliminar={onEliminarSede} />
-            </section>
+            </Tarjeta>
 
-            {/* ======================= TEMPORADA ======================= */}
-            <div className="space-y-2">
+            {/* ======================= 2. TEMPORADA ======================= */}
+            {/* Bloque "activo": el formulario y el rol trabajan sobre la
+                temporada que se elija aquí (design.md → bloque activo). */}
+            <Tarjeta variante="panel" as="section" className="space-y-4 border-borde-fuerte">
+                <TituloSeccion
+                    paso={2}
+                    descripcion={
+                        elegida && (
+                            <>
+                                Trabajando en{' '}
+                                <Link href={urlTemporada(elegida.liga, elegida.temporada.number)} className={claseEnlace}>
+                                    {nombreTemporada(elegida.liga, elegida.temporada.number)}
+                                </Link>
+                                .
+                            </>
+                        )
+                    }
+                >
+                    Temporada de trabajo
+                </TituloSeccion>
                 <SelectorTemporada ligas={ligas} seasonId={seasonId} onChange={setSeasonId} idPrefix="partidos" />
-                {elegida && (
-                    <p className="text-sm text-gray-500">
-                        Trabajando en{' '}
-                        <Link
-                            href={urlTemporada(elegida.liga, elegida.temporada.number)}
-                            className="font-semibold text-pink-400 hover:text-pink-300"
-                        >
-                            {nombreTemporada(elegida.liga, elegida.temporada.number)}
-                        </Link>
-                    </p>
-                )}
                 {elegida && temporadaCerrada && (
-                    <p className="rounded-md border border-gray-700 bg-gray-950/60 p-3 text-sm text-gray-400">
-                        Esta temporada está cerrada: sus partidos ya no se crean, editan ni capturan.
-                    </p>
+                    <Nota>Esta temporada está cerrada: sus partidos ya no se crean, editan ni capturan.</Nota>
                 )}
-            </div>
+            </Tarjeta>
 
-            {/* ======================= 2. NUEVO PARTIDO ======================= */}
+            {/* ======================= 3. NUEVO PARTIDO ======================= */}
             {elegida && !temporadaCerrada && (
-                <section className="space-y-4 rounded-lg border border-gray-800 bg-gray-900/40 p-6">
-                    <h2 className="text-xl font-semibold text-white">2 · Nuevo partido</h2>
+                <Tarjeta variante="panel" as="section">
+                    <TituloSeccion paso={3}>Nuevo partido</TituloSeccion>
                     <PartidoForm
                         inscripciones={inscripciones}
                         partidos={partidos}
@@ -190,68 +201,77 @@ export default function PartidosPanel() {
                         guardando={guardando}
                         onEnviar={onCrearPartido}
                     />
-                </section>
+                </Tarjeta>
             )}
 
-            {/* ======================= 3. EL ROL ======================= */}
+            {/* ======================= 4. EL ROL ======================= */}
             {elegida && (
-                <section className="space-y-4 rounded-lg border border-pink-500/30 bg-gray-900/40 p-6">
-                    <div className="flex flex-wrap items-end justify-between gap-3">
-                        <h2 className="text-xl font-semibold text-white">3 · El rol</h2>
-                        {categorias.length > 1 && (
-                            <div className="flex flex-col gap-1">
-                                <label htmlFor="rol-filtro" className="text-sm text-gray-300">Categoría</label>
-                                <select
-                                    id="rol-filtro"
-                                    value={filtro}
-                                    onChange={(e) => setFiltro(e.target.value as TeamCategory | '')}
-                                    className={`${inputClass} py-1 text-sm`}
-                                >
-                                    <option value="">Todas</option>
-                                    {categorias.map((c) => (
-                                        <option key={c} value={c}>{etiquetaCategoria[c]}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-                    </div>
+                <section>
+                    <TituloSeccion
+                        paso={temporadaCerrada ? 3 : 4}
+                        acciones={
+                            categorias.length > 1 && (
+                                <div>
+                                    <label htmlFor="rol-filtro" className="sr-only">
+                                        Categoría
+                                    </label>
+                                    <select
+                                        id="rol-filtro"
+                                        value={filtro}
+                                        onChange={(e) => setFiltro(e.target.value as TeamCategory | '')}
+                                        className={`${claseCampo} min-w-48`}
+                                    >
+                                        <option value="">Todas las categorías</option>
+                                        {categorias.map((c) => (
+                                            <option key={c} value={c}>{etiquetaCategoria[c]}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )
+                        }
+                    >
+                        El rol
+                    </TituloSeccion>
 
-                    {cargandoTemporada && <p className="text-gray-300">Cargando partidos...</p>}
+                    {cargandoTemporada && <Cargando texto="Cargando partidos…" />}
 
                     {!cargandoTemporada && grupos.length === 0 && (
-                        <p className="text-gray-400">Todavía no hay partidos en esta temporada.</p>
+                        <Vacio>Todavía no hay partidos en esta temporada.</Vacio>
                     )}
 
-                    {!cargandoTemporada &&
-                        grupos.map((grupo) => (
-                            <div key={grupo.clave} className="space-y-2">
-                                <h3 className="font-semibold text-gray-200">
-                                    {grupo.titulo}
-                                    {/* Si toda la jornada es el mismo día, se dice UNA vez aquí
-                                        y cada fila muestra solo la hora. */}
-                                    {grupo.diaComun && (
-                                        <span className="font-normal text-gray-400">
-                                            {' '}· {formatoDiaPartido(grupo.diaComun)}
-                                        </span>
-                                    )}
-                                </h3>
-                                <ul className="space-y-2">
-                                    {grupo.partidos.map((p) => (
-                                        <FilaPartido
-                                            key={p.id}
-                                            partido={p}
-                                            soloHora={grupo.diaComun !== null}
-                                            acciones={!temporadaCerrada}
-                                            guardando={guardando}
-                                            onResultado={() => setConMarcador(p)}
-                                            onEditar={() => setEditando(p)}
-                                            onSuspender={() => onSuspender(p)}
-                                            onBorrar={() => onBorrar(p)}
-                                        />
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
+                    <div className="space-y-8">
+                        {!cargandoTemporada &&
+                            grupos.map((grupo) => (
+                                <div key={grupo.clave} className="space-y-3">
+                                    {/* Mismo título de jornada que la página pública. */}
+                                    <h3 className="text-cuerpo font-semibold text-tinta-2">
+                                        {grupo.titulo}
+                                        {/* Si toda la jornada es el mismo día, se dice UNA vez aquí
+                                            y cada fila muestra solo la hora. */}
+                                        {grupo.diaComun && (
+                                            <span className="font-normal text-tenue">
+                                                {' '}· {formatoDiaPartido(grupo.diaComun)}
+                                            </span>
+                                        )}
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {grupo.partidos.map((p) => (
+                                            <FilaPartido
+                                                key={p.id}
+                                                partido={p}
+                                                soloHora={grupo.diaComun !== null}
+                                                acciones={!temporadaCerrada}
+                                                guardando={guardando}
+                                                onResultado={() => setConMarcador(p)}
+                                                onEditar={() => setEditando(p)}
+                                                onSuspender={() => onSuspender(p)}
+                                                onBorrar={() => onBorrar(p)}
+                                            />
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                    </div>
                 </section>
             )}
 
@@ -313,47 +333,29 @@ function FilaPartido({
     onBorrar: () => void;
 }) {
     const finalizado = p.status === 'finalizado';
-    const boton = 'rounded-full border px-3 py-1 text-xs transition disabled:opacity-50';
 
     return (
         <PartidoTarjeta partido={p} soloHora={soloHora}>
             {acciones && (
-                <div className="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        disabled={guardando}
-                        onClick={onResultado}
-                        className={`${boton} border-pink-500/60 text-pink-300 hover:text-pink-200`}
-                    >
+                // Las acciones van separadas del partido por una línea fina.
+                // "Capturar resultado" es la acción principal de la fila, pero
+                // en secundario: un primario por fila serían diez en la pantalla.
+                <div className="flex flex-wrap gap-1.5 border-t border-borde pt-3">
+                    <Boton variante="secundario" tamano="sm" disabled={guardando} onClick={onResultado}>
                         {finalizado ? 'Resultado' : 'Capturar resultado'}
-                    </button>
+                    </Boton>
                     {/* Un finalizado no se edita ni se borra: primero se deshace su resultado. */}
                     {!finalizado && (
                         <>
-                            <button
-                                type="button"
-                                disabled={guardando}
-                                onClick={onEditar}
-                                className={`${boton} border-gray-600 text-gray-300 hover:text-white`}
-                            >
+                            <Boton variante="fantasma" tamano="sm" disabled={guardando} onClick={onEditar}>
                                 Editar / reprogramar
-                            </button>
-                            <button
-                                type="button"
-                                disabled={guardando}
-                                onClick={onSuspender}
-                                className={`${boton} border-yellow-500/60 text-yellow-300 hover:text-yellow-200`}
-                            >
+                            </Boton>
+                            <Boton variante="fantasma" tamano="sm" disabled={guardando} onClick={onSuspender}>
                                 {p.status === 'suspendido' ? 'Reactivar' : 'Suspender'}
-                            </button>
-                            <button
-                                type="button"
-                                disabled={guardando}
-                                onClick={onBorrar}
-                                className={`${boton} border-red-500/60 text-red-400 hover:text-red-300`}
-                            >
+                            </Boton>
+                            <Boton variante="peligro" tamano="sm" disabled={guardando} onClick={onBorrar}>
                                 Borrar
-                            </button>
+                            </Boton>
                         </>
                     )}
                 </div>

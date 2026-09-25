@@ -3,6 +3,8 @@ import Header from '@/components/header';
 import { createAsyncCaller } from '@/app/api/trpc/trpc-router';
 import MarqueeEquipos from '@/components/marquee-equipos';
 import SeccionPlaceholder from '@/components/seccion-placeholder';
+import Insignia from '@/components/ui/insignia';
+import { claseBoton } from '@/components/ui/boton';
 
 export default async function Home() {
   // Los equipos se piden en el SERVIDOR, con el mismo router de tRPC pero
@@ -24,36 +26,39 @@ export default async function Home() {
     <>
       <Header />
 
-      <main className="bg-gray-950">
-        {/* ================= Bienvenida ================= */}
-        <section className="px-4 pt-20 pb-16">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="text-4xl font-bold text-white sm:text-5xl lg:text-6xl">
-              Bienvenido a la{' '}
-              <span className="bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text text-transparent">
-                LIGADOLORENSEDETOCHO
-              </span>
-            </h1>
+      <main>
+        {/* ================= Bienvenida (design.md → Patrones → Hero) ================= */}
+        {/* Alineado a la izquierda, no centrado: un título grande alineado a
+            la izquierda se lee como editorial; centrado se lee como póster. */}
+        <section className="mx-auto max-w-pagina px-4 pt-16 pb-12 sm:px-6 sm:pt-24 sm:pb-20">
+          <Insignia tono="contorno">Tocho bandera · Dolores Hidalgo, Gto.</Insignia>
 
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
-              Consulta los equipos de la liga, los jugadores de cada categoría y,
-              muy pronto, la tabla de clasificaciones y las estadísticas de la temporada.
-            </p>
+          {/* El título tiene dos partes con jerarquía distinta:
+              - "Bienvenido a la": introducción, más chica y en tinta-2.
+              - El nombre: es la marca, así que es lo más grande. Va todo
+                junto, y como 20 letras sin espacios no se pueden partir,
+                usa `text-marca`, un tamaño que se calcula con el ancho de
+                pantalla (ver globals.css). `wrap-anywhere` es solo un
+                seguro para pantallas de menos de 300px. */}
+          <h1 className="mt-6 font-semibold">
+            <span className="block text-subtitulo text-tinta-2 sm:text-titulo-sm lg:text-titulo">
+              Bienvenido a la
+            </span>
+            <span className="mt-1 block text-marca text-tinta wrap-anywhere">LIGADOLORENSEDETOCHO</span>
+          </h1>
 
-            <div className="mt-10 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/equipos"
-                className="rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-6 py-2.5 font-semibold text-white transition duration-300 hover:bg-linear-to-l"
-              >
-                Ver equipos
-              </Link>
-              <Link
-                href="/jugadores"
-                className="rounded-full border border-gray-600 px-6 py-2.5 font-semibold text-gray-300 transition hover:border-gray-400 hover:text-white"
-              >
-                Ver jugadores
-              </Link>
-            </div>
+          <p className="mt-6 max-w-2xl text-cuerpo-lg text-tenue">
+            Consulta los equipos de la liga, los jugadores de cada categoría y,
+            muy pronto, la tabla de clasificaciones y las estadísticas de la temporada.
+          </p>
+
+          <div className="mt-10 flex flex-wrap gap-3">
+            <Link href="/equipos" className={claseBoton({ variante: 'primario', tamano: 'lg' })}>
+              Ver equipos
+            </Link>
+            <Link href="/jugadores" className={claseBoton({ variante: 'secundario', tamano: 'lg' })}>
+              Ver jugadores
+            </Link>
           </div>
         </section>
 
@@ -62,8 +67,8 @@ export default async function Home() {
         <MarqueeEquipos equipos={equipos} />
 
         {/* ================= Clasificaciones y estadísticas ================= */}
-        <section className="px-4 py-16">
-          <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-2">
+        <section className="mx-auto max-w-pagina px-4 py-12 sm:px-6 sm:py-20">
+          <div className="grid gap-4 lg:grid-cols-2">
             <SeccionPlaceholder
               titulo="Tabla de clasificaciones"
               descripcion="Posiciones de cada equipo por categoría: partidos jugados, ganados, perdidos y puntos."
@@ -77,29 +82,14 @@ export default async function Home() {
         </section>
 
         {/* ================= Galería ================= */}
-        <section className="px-4 pb-20">
-          <div className="mx-auto max-w-5xl">
-            <SeccionPlaceholder
-              titulo="Fotos destacadas"
-              descripcion="Los mejores momentos de la jornada."
-              aviso="Galería vacía"
-            >
-              {/* Rejilla de huecos: así se ve desde ahora cómo va a quedar
-                  la galería cuando existan las fotos. */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {Array.from({ length: 8 }, (_, i) => (
-                  <div
-                    key={i}
-                    className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-gray-700"
-                  >
-                    <span className="text-xs uppercase tracking-widest text-gray-700">
-                      Foto
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </SeccionPlaceholder>
-          </div>
+        {/* Sin la rejilla de 8 huecos grises: mientras no haya fotos, una
+            sección vacía se muestra como estado vacío (design.md → Imágenes). */}
+        <section className="mx-auto max-w-pagina px-4 pb-12 sm:px-6 sm:pb-20">
+          <SeccionPlaceholder
+            titulo="Fotos destacadas"
+            descripcion="Los mejores momentos de la jornada."
+            aviso="Todavía no hay fotos"
+          />
         </section>
       </main>
     </>

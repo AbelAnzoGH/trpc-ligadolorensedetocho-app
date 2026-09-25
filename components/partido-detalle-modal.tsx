@@ -2,12 +2,13 @@
 
 import Modal from '@/components/modal';
 import LogoEquipo from '@/components/logo-equipo';
+import Insignia from '@/components/ui/insignia';
 import { etiquetaCategoria } from '@/lib/team-ui';
 import { PUNTOS_DEFAULT } from '@/lib/game-schema';
 import {
     etiquetaFase,
     etiquetaEstadoPartido,
-    claseEstadoPartido,
+    tonoEstadoPartido,
     formatoDiaPartido,
     formatoHoraPartido,
     type Game,
@@ -58,48 +59,47 @@ export default function PartidoDetalleModal({
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <div className="flex flex-col items-center gap-2 text-center">
                         <LogoEquipo nombre={local.name} logoUrl={local.logoUrl} tamano={72} />
-                        <span className="text-sm font-semibold text-white">{local.name}</span>
-                        <span className="text-xs text-gray-500">Local</span>
+                        <span className="text-meta font-semibold text-tinta">{local.name}</span>
+                        <span className="text-leyenda text-tenue">Local</span>
                     </div>
-                    <div className="text-center">
+                    <div className="flex flex-col items-center gap-2 text-center">
                         {jugado ? (
-                            <span className="text-3xl font-bold tabular-nums text-white">
+                            <span className="text-titulo-sm font-bold tabular-nums text-tinta">
                                 {p.homeScore} – {p.awayScore}
                             </span>
                         ) : (
-                            <span className="text-lg font-semibold text-gray-500">vs</span>
+                            <span className="text-meta font-medium uppercase tracking-wider text-apagado">vs</span>
                         )}
-                        <span className={`mt-2 block rounded-full border px-2 py-0.5 text-xs ${claseEstadoPartido[p.status]}`}>
-                            {etiquetaEstadoPartido[p.status]}
-                        </span>
+                        <Insignia tono={tonoEstadoPartido[p.status]}>{etiquetaEstadoPartido[p.status]}</Insignia>
                     </div>
                     <div className="flex flex-col items-center gap-2 text-center">
                         <LogoEquipo nombre={visitante.name} logoUrl={visitante.logoUrl} tamano={72} />
-                        <span className="text-sm font-semibold text-white">{visitante.name}</span>
-                        <span className="text-xs text-gray-500">Visitante</span>
+                        <span className="text-meta font-semibold text-tinta">{visitante.name}</span>
+                        <span className="text-leyenda text-tenue">Visitante</span>
                     </div>
                 </div>
 
+                {/* Aviso en tono "aviso": mismo color que la insignia "Default". */}
                 {ausente && (
-                    <p className="rounded-md border border-yellow-500/40 bg-yellow-500/5 p-3 text-sm text-yellow-300">
+                    <p className="rounded-item border border-aviso/30 bg-aviso/10 p-3 text-meta text-aviso">
                         Ganado por default: {ausente} no se presentó ({PUNTOS_DEFAULT}-0).
                     </p>
                 )}
 
                 {/* ---------- Detalles ---------- */}
-                <dl className="divide-y divide-gray-800 rounded-lg border border-gray-800">
+                <dl className="divide-y divide-borde rounded-item border border-borde">
                     {filas.map(([etiqueta, valor]) => (
-                        <div key={etiqueta} className="flex justify-between gap-4 px-4 py-2 text-sm">
-                            <dt className="text-gray-400">{etiqueta}</dt>
-                            <dd className="text-right text-white first-letter:uppercase">{valor}</dd>
+                        <div key={etiqueta} className="flex justify-between gap-4 px-4 py-2.5 text-meta">
+                            <dt className="text-tenue">{etiqueta}</dt>
+                            <dd className="text-right text-tinta first-letter:uppercase">{valor}</dd>
                         </div>
                     ))}
                 </dl>
 
                 {p.notes && (
                     <div className="space-y-1">
-                        <h3 className="text-sm font-semibold text-gray-300">Notas</h3>
-                        <p className="text-sm text-gray-400">{p.notes}</p>
+                        <h3 className="text-meta font-semibold text-tinta-2">Notas</h3>
+                        <p className="text-meta text-tenue">{p.notes}</p>
                     </div>
                 )}
             </div>

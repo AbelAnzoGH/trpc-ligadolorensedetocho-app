@@ -1,45 +1,61 @@
 import Link from 'next/link';
 import LogoLiga from './logo-liga';
+import { enlacesPublicos } from '@/lib/navegacion';
 
+/**
+ * Pie de página (design.md → Patrones → Footer).
+ *
+ * Decisiones de diseño:
+ *   - Mismo ancho y márgenes que el header (max-w-pagina, px-4 sm:px-6),
+ *     para que los bordes izquierdos de logo y enlaces queden alineados
+ *     arriba y abajo de la página.
+ *   - Fondo canvas (el del <body>) y solo un borde fino arriba. El footer
+ *     no necesita "pesar" más que el contenido.
+ *   - Los enlaces salen de lib/navegacion.ts: si se agrega una página
+ *     pública al menú, aparece también aquí.
+ *   - El copyright va en `text-tenue` y no en `text-apagado`: hay que
+ *     poder leerlo, y `apagado` no pasa contraste AA.
+ */
 const Footer = () => {
     const anio = new Date().getFullYear();
 
     return (
-        <footer className="border-t border-gray-800 bg-gray-950">
-            <div className="mx-auto max-w-5xl px-4 py-10">
-                <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex items-center gap-3">
-                        <LogoLiga className="h-12 w-auto" title="" />
+        <footer className="border-t border-borde">
+            <div className="mx-auto max-w-pagina px-4 py-12 sm:px-6">
+                <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
+                    {/* ---------- Marca ---------- */}
+                    <div className="flex items-center gap-4">
+                        <LogoLiga className="h-12 w-auto shrink-0" title="" />
                         <div>
-                            <p className="bg-linear-to-r from-pink-500 to-yellow-500 bg-clip-text font-bold text-transparent">
-                                LIGADOLORENSE DE TOCHO
-                            </p>
-                            <p className="text-sm text-gray-500">Tocho bandera</p>
+                            <p className="font-bold tracking-tight text-tinta">LIGADOLORENSE DE TOCHO</p>
+                            <p className="text-meta text-tenue">Tocho bandera · Dolores Hidalgo, Gto.</p>
                         </div>
                     </div>
 
-                    <nav aria-label="Enlaces del pie de página">
-                        <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
-                            <li>
-                                <Link href="/" className="text-gray-400 hover:text-pink-500">
-                                    Inicio
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/equipos" className="text-gray-400 hover:text-pink-500">
-                                    Equipos
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/jugadores" className="text-gray-400 hover:text-pink-500">
-                                    Jugadores
-                                </Link>
-                            </li>
+                    {/* ---------- Navegación ---------- */}
+                    <nav aria-labelledby="footer-titulo-liga">
+                        <p
+                            id="footer-titulo-liga"
+                            className="text-leyenda font-medium uppercase tracking-wider text-tenue"
+                        >
+                            La liga
+                        </p>
+                        <ul className="mt-3 grid grid-cols-2 gap-x-10 gap-y-2 sm:grid-cols-1">
+                            {enlacesPublicos.map((enlace) => (
+                                <li key={enlace.href}>
+                                    <Link
+                                        href={enlace.href}
+                                        className="rounded-control text-meta text-tinta-2 transition-colors hover:text-tinta"
+                                    >
+                                        {enlace.etiqueta}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
                     </nav>
                 </div>
 
-                <p className="mt-8 text-center text-xs text-gray-600">
+                <p className="mt-10 border-t border-borde pt-6 text-leyenda text-tenue">
                     © {anio} Ligadolorense de Tocho. Todos los derechos reservados.
                 </p>
             </div>

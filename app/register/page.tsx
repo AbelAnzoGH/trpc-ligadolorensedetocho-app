@@ -1,22 +1,27 @@
+import Link from 'next/link';
 import Header from '@/components/header';
+import Acceso from '@/components/acceso';
+import { claseEnlace } from '@/components/ui/enlace';
 import RegisterForm from './register-form';
 
 export default async function RegisterPage() {
     return (
         <>
             <Header />
-            <section className='py-8 bg-gray-950 min-h-screen grid place-items-center'>
-                <div className='w-full'>
-                    <h1 className='text-5xl font-bold mb-4 xl:text-6xl text-center bg-gradient-to-r from-pink-500 to-yellow-500 bg-clip-text text-transparent'>
-                        Bienvenido a la LDT
-                    </h1>
-                    <h2 className='mt-2 text-lg text-center mb-4 text-white'>
-                        ¡Registrate ahora para comenzar!
-                    </h2>
-                    <RegisterForm />
-                </div>
-            </section>
+            <Acceso
+                titulo="Crea tu cuenta"
+                descripcion="¡Regístrate ahora para comenzar!"
+                pie={
+                    <>
+                        ¿Ya tienes cuenta?{' '}
+                        <Link href="/login" className={claseEnlace}>
+                            Inicia sesión
+                        </Link>
+                    </>
+                }
+            >
+                <RegisterForm />
+            </Acceso>
         </>
     );
 }
-

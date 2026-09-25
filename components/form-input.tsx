@@ -1,5 +1,6 @@
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
+import { claseCampo, claseEtiqueta, claseError, claseGrupoCampo } from './ui/campo';
 
 type FormInputProps = {
     label: string;
@@ -16,20 +17,31 @@ const FormInput: React.FC<FormInputProps> = ({
         register,
         formState: { errors },
     } = useFormContext();
+
+    const mensajeError = errors[name]?.message as string | undefined;
+    const idError = `${name}-error`;
+
     return (
-        <div className=''>
-            <label htmlFor={name} className='block text-gray-200 mb-3'>
+        <div className={claseGrupoCampo}>
+            <label htmlFor={name} className={claseEtiqueta}>
                 {label}
             </label>
             <input
+                // `id` conecta el <input> con el htmlFor del <label>: así un
+                // clic en la etiqueta enfoca el campo y el lector de pantalla
+                // lee el nombre. `register` no pone id, solo name.
+                id={name}
                 type={type}
-                placeholder=' '
-                className='block w-full rounded-2xl appearance-none focus:outline-none py-2 px-4'
+                className={`${claseCampo} w-full`}
+                // aria-invalid pinta el borde rojo (ver claseCampo) y avisa
+                // al lector de pantalla; aria-describedby le lee el error.
+                aria-invalid={mensajeError ? true : undefined}
+                aria-describedby={mensajeError ? idError : undefined}
                 {...register(name)}
             />
-            {errors[name] && (
-                <span className='text-red-500 text-xs pt-1 block'>
-                    {errors[name]?.message as string}
+            {mensajeError && (
+                <span id={idError} className={claseError}>
+                    {mensajeError}
                 </span>
             )}
         </div>
@@ -37,4 +49,3 @@ const FormInput: React.FC<FormInputProps> = ({
 };
 
 export default FormInput;
-

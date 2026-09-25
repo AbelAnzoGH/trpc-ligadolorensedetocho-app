@@ -8,21 +8,27 @@ import { useLigas } from '@/utils/use-ligas';
 import SelectorTemporada from '@/components/selector-temporada';
 import type { TeamCategory } from '@/lib/team-schema';
 import { seasonStatuses, type SeasonStatus } from '@/lib/season-schema';
-import { etiquetaCategoria, inputClass, type Team, type ListTeamsResponse } from '@/lib/team-ui';
+import { etiquetaCategoria, type Team, type ListTeamsResponse } from '@/lib/team-ui';
 import {
     romano,
     nombreTemporada,
     urlTemporada,
     etiquetaEstado,
-    claseEstado,
+    tonoEstadoTemporada,
     type TeamSeason,
     type ListTeamSeasonsResponse,
 } from '@/lib/season-ui';
+import { cn } from '@/lib/cn';
+import Boton from '@/components/ui/boton';
+import Insignia from '@/components/ui/insignia';
+import Tarjeta from '@/components/ui/tarjeta';
+import { TituloSeccion } from '@/components/ui/pagina';
+import { Cargando, MensajeError, Nota, Vacio } from '@/components/ui/estado';
+import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
+import { claseEnlace } from '@/components/ui/enlace';
+import { claseAccionesFila, claseFila, claseLista } from '@/components/ui/lista';
 import InscripcionFila from './inscripcion-fila';
 import CategoriasTemporada from './categorias-temporada';
-
-const botonPrimario =
-    'rounded-full bg-linear-to-r from-pink-500 to-yellow-500 px-5 py-2 font-semibold text-white transition duration-300 hover:bg-linear-to-l disabled:opacity-50';
 
 /**
  * Panel de administración de temporadas. Tres secciones, de arriba abajo en
@@ -188,8 +194,8 @@ export default function TemporadasPanel() {
         if (ok) setInscribirEquipo('');
     };
 
-    if (cargando) return <p className="text-gray-300">Cargando ligas...</p>;
-    if (error) return <p className="text-red-400">Error: {error}</p>;
+    if (cargando) return <Cargando texto="Cargando ligas…" />;
+    if (error) return <MensajeError>Error: {error}</MensajeError>;
 
     const temporadaCerrada = elegida?.temporada.status === 'cerrada';
 
@@ -204,72 +210,76 @@ export default function TemporadasPanel() {
             : (categoriasTemporada[0] ?? '');
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-8">
             {/* ======================= 1. LIGAS ======================= */}
-            <section className="space-y-4 rounded-lg border border-gray-800 bg-gray-900/40 p-6">
-                <h2 className="text-xl font-semibold text-white">1 · Ligas</h2>
+            <Tarjeta variante="panel" as="section" className="space-y-5">
+                <TituloSeccion paso={1}>Ligas</TituloSeccion>
 
                 {ligas.length > 0 && (
                     <ul className="flex flex-wrap gap-2">
                         {ligas.map((liga) => (
-                            <li
-                                key={liga.id}
-                                className="rounded-full border border-gray-700 px-3 py-1 text-sm text-gray-300"
-                            >
-                                <strong className="text-white">{liga.name}</strong>{' '}
-                                <span className="text-gray-500">/{liga.slug}</span>
+                            <li key={liga.id}>
+                                <Insignia tono="contorno" className="text-meta">
+                                    <span className="text-tinta">{liga.name}</span>
+                                    <span className="font-normal text-tenue">/{liga.slug}</span>
+                                </Insignia>
                             </li>
                         ))}
                     </ul>
                 )}
 
                 <form onSubmit={onCrearLiga} className="flex flex-wrap items-end gap-3">
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="liga-nombre" className="text-sm text-gray-300">Nombre</label>
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="liga-nombre" className={claseEtiqueta}>Nombre</label>
                         <input
                             id="liga-nombre"
                             value={ligaNombre}
                             onChange={(e) => setLigaNombre(e.target.value)}
-                            className={inputClass}
+                            className={`${claseCampo} min-w-56`}
                             placeholder="Ej. LDT SHADOWS"
                         />
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="liga-slug" className="text-sm text-gray-300">
-                            Slug (va en la URL)
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="liga-slug" className={claseEtiqueta}>
+                            Slug <span className="font-normal text-tenue">(va en la URL)</span>
                         </label>
                         <input
                             id="liga-slug"
                             value={ligaSlug}
                             onChange={(e) => setLigaSlug(e.target.value.toLowerCase())}
-                            className={inputClass}
+                            className={`${claseCampo} min-w-40`}
                             placeholder="Ej. shadows"
                         />
                     </div>
-                    <button type="submit" disabled={guardando} className={botonPrimario}>
+                    <Boton type="submit" disabled={guardando}>
                         Crear liga
-                    </button>
+                    </Boton>
                 </form>
-            </section>
+            </Tarjeta>
 
             {/* ======================= 2. TEMPORADAS ======================= */}
-            <section className="space-y-4 rounded-lg border border-gray-800 bg-gray-900/40 p-6">
-                <div>
-                    <h2 className="text-xl font-semibold text-white">2 · Temporadas</h2>
-                    <p className="mt-1 text-sm text-gray-400">
-                        Cada liga puede tener <strong>una sola</strong> temporada en curso. Crea la
-                        siguiente en &quot;Inscripciones&quot; para prepararla sin cerrar la actual.
-                    </p>
-                </div>
+            <Tarjeta variante="panel" as="section" className="space-y-6">
+                <TituloSeccion
+                    paso={2}
+                    descripcion={
+                        <>
+                            Cada liga puede tener <strong className="font-semibold text-tinta-2">una sola</strong>{' '}
+                            temporada en curso. Crea la siguiente en &quot;Inscripciones&quot; para prepararla sin
+                            cerrar la actual.
+                        </>
+                    }
+                >
+                    Temporadas
+                </TituloSeccion>
 
                 <form onSubmit={onCrearTemporada} className="flex flex-wrap items-end gap-3">
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="temp-liga" className="text-sm text-gray-300">Liga</label>
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="temp-liga" className={claseEtiqueta}>Liga</label>
                         <select
                             id="temp-liga"
                             value={temporadaLiga}
                             onChange={(e) => elegirLigaParaTemporada(e.target.value)}
-                            className={inputClass}
+                            className={`${claseCampo} min-w-40`}
                         >
                             <option value="">Elige una liga</option>
                             {ligas.map((l) => (
@@ -277,75 +287,70 @@ export default function TemporadasPanel() {
                             ))}
                         </select>
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="temp-numero" className="text-sm text-gray-300">Número</label>
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="temp-numero" className={claseEtiqueta}>Número</label>
                         <input
                             id="temp-numero"
                             type="number"
                             min={1}
                             value={temporadaNumero}
                             onChange={(e) => setTemporadaNumero(e.target.value)}
-                            className={`${inputClass} w-24`}
+                            className={`${claseCampo} w-24`}
                         />
                     </div>
-                    <div className="flex w-full flex-col gap-1 sm:order-last">
-                        <span className="text-sm text-gray-300">Categorías que se juegan</span>
+                    <div className={`${claseGrupoCampo} w-full sm:order-last`}>
+                        <span className={claseEtiqueta}>Categorías que se juegan</span>
                         <CategoriasTemporada
                             seleccionadas={temporadaCategorias}
                             onCambiar={setTemporadaCategorias}
                             deshabilitado={guardando}
                         />
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="temp-estado" className="text-sm text-gray-300">Estado</label>
+                    <div className={claseGrupoCampo}>
+                        <label htmlFor="temp-estado" className={claseEtiqueta}>Estado</label>
                         <select
                             id="temp-estado"
                             value={temporadaEstado}
                             onChange={(e) => setTemporadaEstado(e.target.value as SeasonStatus)}
-                            className={inputClass}
+                            className={`${claseCampo} min-w-40`}
                         >
                             {seasonStatuses.map((s) => (
                                 <option key={s} value={s}>{etiquetaEstado[s]}</option>
                             ))}
                         </select>
                     </div>
-                    <button type="submit" disabled={guardando} className={botonPrimario}>
+                    <Boton type="submit" disabled={guardando}>
                         Crear temporada
-                    </button>
+                    </Boton>
                 </form>
 
                 {ligas.map((liga) =>
                     liga.seasons.length === 0 ? null : (
-                        <div key={liga.id} className="space-y-2">
-                            <h3 className="font-semibold text-gray-200">{liga.name}</h3>
-                            <ul className="divide-y divide-gray-800 overflow-hidden rounded-lg border border-gray-800">
+                        <div key={liga.id} className="space-y-3">
+                            <h3 className="text-leyenda font-medium uppercase tracking-wider text-tenue">{liga.name}</h3>
+                            <ul className={claseLista}>
                                 {liga.seasons.map((s) => {
                                     const nombre = nombreTemporada(liga, s.number);
                                     return (
-                                        <li
-                                            key={s.id}
-                                            className="flex flex-wrap items-center justify-between gap-3 bg-gray-950/40 px-4 py-3"
-                                        >
-                                            <span className="flex items-center gap-3">
-                                                <Link
-                                                    href={urlTemporada(liga, s.number)}
-                                                    className="font-semibold text-white hover:text-pink-400"
-                                                >
+                                        <li key={s.id} className={claseFila}>
+                                            <span className="flex flex-wrap items-center gap-3">
+                                                <Link href={urlTemporada(liga, s.number)} className={claseEnlace}>
                                                     Temporada {romano(s.number)}
                                                 </Link>
-                                                <span className={`rounded-full border px-2 py-0.5 text-xs ${claseEstado[s.status]}`}>
+                                                <Insignia tono={tonoEstadoTemporada[s.status]}>
                                                     {etiquetaEstado[s.status]}
-                                                </span>
-                                                <span className="text-sm text-gray-500">
+                                                </Insignia>
+                                                <span className="text-meta text-tenue">
                                                     {s._count.teamSeasons}{' '}
                                                     {s._count.teamSeasons === 1 ? 'equipo' : 'equipos'}
                                                 </span>
                                             </span>
 
-                                            <span className="flex items-center gap-2">
+                                            <span className={`${claseAccionesFila} items-center`}>
                                                 <label className="sr-only" htmlFor={`estado-${s.id}`}>
                                                     Estado de {nombre}
                                                 </label>
+                                                {/* h-8: a la altura de los botones sm de la fila. */}
                                                 <select
                                                     id={`estado-${s.id}`}
                                                     value={s.status}
@@ -353,7 +358,7 @@ export default function TemporadasPanel() {
                                                     onChange={(e) =>
                                                         onCambiarEstado(s.id, e.target.value as SeasonStatus, nombre)
                                                     }
-                                                    className={`${inputClass} py-1 text-sm`}
+                                                    className={cn(claseCampo, 'h-8 py-0 text-meta')}
                                                 >
                                                     {seasonStatuses.map((st) => (
                                                         <option key={st} value={st}>{etiquetaEstado[st]}</option>
@@ -361,14 +366,14 @@ export default function TemporadasPanel() {
                                                 </select>
                                                 {/* Solo una temporada vacía se puede borrar. */}
                                                 {s._count.teamSeasons === 0 && (
-                                                    <button
-                                                        type="button"
+                                                    <Boton
+                                                        variante="peligro"
+                                                        tamano="sm"
                                                         disabled={guardando}
                                                         onClick={() => onEliminarTemporada(s.id, nombre)}
-                                                        className="rounded-full border border-red-500/60 px-3 py-1 text-sm text-red-400 hover:text-red-300 disabled:opacity-50"
                                                     >
                                                         Eliminar
-                                                    </button>
+                                                    </Boton>
                                                 )}
                                             </span>
 
@@ -386,36 +391,42 @@ export default function TemporadasPanel() {
                         </div>
                     ),
                 )}
-            </section>
+            </Tarjeta>
 
             {/* ======================= 3. INSCRIPCIONES ======================= */}
-            <section className="space-y-4 rounded-lg border border-pink-500/30 bg-gray-900/40 p-6">
-                <div>
-                    <h2 className="text-xl font-semibold text-white">3 · Equipos inscritos</h2>
-                    <p className="mt-1 text-sm text-gray-400">
-                        Un equipo inscrito llega <strong>sin plantel y con estadísticas en cero</strong>:
-                        todo lo &quot;de la temporada&quot; empieza de nuevo. El nombre y el logo ya los trae.
-                    </p>
-                </div>
+            {/* Bloque "activo": trabaja sobre la temporada que se elija aquí. */}
+            <Tarjeta variante="panel" as="section" className="space-y-5 border-borde-fuerte">
+                <TituloSeccion
+                    paso={3}
+                    descripcion={
+                        <>
+                            Un equipo inscrito llega{' '}
+                            <strong className="font-semibold text-tinta-2">sin plantel y con estadísticas en cero</strong>:
+                            todo lo &quot;de la temporada&quot; empieza de nuevo. El nombre y el logo ya los trae.
+                        </>
+                    }
+                >
+                    Equipos inscritos
+                </TituloSeccion>
 
                 <SelectorTemporada ligas={ligas} seasonId={seasonId} onChange={setSeasonId} idPrefix="insc" />
 
                 {elegida && temporadaCerrada && (
-                    <p className="rounded-md border border-gray-700 bg-gray-950/60 p-3 text-sm text-gray-400">
-                        {nombreTemporada(elegida.liga, elegida.temporada.number)} está cerrada: no se
-                        pueden inscribir equipos ni agregar jugadores. Las estadísticas sí se pueden corregir.
-                    </p>
+                    <Nota>
+                        {nombreTemporada(elegida.liga, elegida.temporada.number)} está cerrada: no se pueden
+                        inscribir equipos ni agregar jugadores. Las estadísticas sí se pueden corregir.
+                    </Nota>
                 )}
 
                 {elegida && !temporadaCerrada && (
                     <form onSubmit={onInscribir} className="flex flex-wrap items-end gap-3">
-                        <div className="flex flex-col gap-1">
-                            <label htmlFor="insc-equipo" className="text-sm text-gray-300">Equipo</label>
+                        <div className={claseGrupoCampo}>
+                            <label htmlFor="insc-equipo" className={claseEtiqueta}>Equipo</label>
                             <select
                                 id="insc-equipo"
                                 value={inscribirEquipo}
                                 onChange={(e) => setInscribirEquipo(e.target.value)}
-                                className={inputClass}
+                                className={`${claseCampo} min-w-48`}
                             >
                                 <option value="">Elige un equipo</option>
                                 {equipos.map((t) => (
@@ -423,14 +434,14 @@ export default function TemporadasPanel() {
                                 ))}
                             </select>
                         </div>
-                        <div className="flex flex-col gap-1">
-                            <label htmlFor="insc-categoria" className="text-sm text-gray-300">Categoría</label>
+                        <div className={claseGrupoCampo}>
+                            <label htmlFor="insc-categoria" className={claseEtiqueta}>Categoría</label>
                             <select
                                 id="insc-categoria"
                                 value={categoriaInscripcion}
                                 onChange={(e) => setInscribirCategoria(e.target.value as TeamCategory)}
                                 disabled={categoriasTemporada.length === 0}
-                                className={inputClass}
+                                className={`${claseCampo} min-w-40`}
                             >
                                 {categoriasTemporada.length === 0 && (
                                     <option value="">Sin categorías: agrégalas en la sección 2</option>
@@ -440,19 +451,20 @@ export default function TemporadasPanel() {
                                 ))}
                             </select>
                         </div>
-                        <button type="submit" disabled={guardando} className={botonPrimario}>
+                        <Boton type="submit" disabled={guardando}>
                             Inscribir
-                        </button>
-                        <Link href="/manejar-equipos" className="pb-2 text-sm text-pink-500 hover:text-pink-400">
+                        </Boton>
+                        {/* pb-2.5: el texto queda a la altura del texto de los campos. */}
+                        <Link href="/manejar-equipos" className={`${claseEnlace} pb-2.5 text-meta`}>
                             ¿Equipo nuevo? Créalo aquí
                         </Link>
                     </form>
                 )}
 
-                {cargandoInscripciones && <p className="text-gray-300">Cargando equipos inscritos...</p>}
+                {cargandoInscripciones && <Cargando texto="Cargando equipos inscritos…" />}
 
                 {!cargandoInscripciones && elegida && inscripciones.length === 0 && (
-                    <p className="text-gray-400">Todavía no hay equipos inscritos en esta temporada.</p>
+                    <Vacio>Todavía no hay equipos inscritos en esta temporada.</Vacio>
                 )}
 
                 {!cargandoInscripciones && inscripciones.length > 0 && (
@@ -470,7 +482,7 @@ export default function TemporadasPanel() {
                         ))}
                     </ul>
                 )}
-            </section>
+            </Tarjeta>
         </div>
     );
 }

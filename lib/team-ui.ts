@@ -42,8 +42,3 @@ export const etiquetaCategoria: Record<TeamCategory, string> = {
     femenil_u16: 'Femenil Under16',
     mixto_u18: 'Mixto Under18',
 };
-
-/** Clases de Tailwind para inputs y selects sobre el fondo oscuro del sitio. */
-export const inputClass =
-    'rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-white ' +
-    'placeholder:text-gray-500 focus:border-pink-500 focus:outline-none';
