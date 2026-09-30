@@ -3,6 +3,9 @@ import Header from '@/components/header';
 import { createAsyncCaller } from '@/app/api/trpc/trpc-router';
 import MarqueeEquipos from '@/components/marquee-equipos';
 import SeccionPlaceholder from '@/components/seccion-placeholder';
+import CarruselPosiciones, { type DiapositivaPosiciones } from '@/components/carrusel-posiciones';
+import { nombreTemporada } from '@/lib/season-ui';
+import { etiquetaCategoria } from '@/lib/team-ui';
 import Insignia from '@/components/ui/insignia';
 import { claseBoton } from '@/components/ui/boton';
 
@@ -19,6 +22,25 @@ export default async function Home() {
         nombre: equipo.name,
         logoUrl: equipo.logoUrl,
       })),
+    )
+    .catch(() => []);
+
+  // Las tablas de las temporadas en curso, aplanadas: una diapositiva por
+  // (temporada, categoría). Mismo criterio que la cinta: si algo falla, la
+  // sección se queda con su estado vacío en vez de tumbar la portada.
+  const diapositivas: DiapositivaPosiciones[] = await createAsyncCaller()
+    .then((caller) => caller.listActiveStandings())
+    .then((r) =>
+      r.data.temporadas.flatMap(({ temporada, tablas, conEmpates }) => {
+        const nombre = nombreTemporada(temporada.league, temporada.number);
+        return tablas.map((tabla) => ({
+          clave: `${temporada.id}:${tabla.category}`,
+          temporada: nombre,
+          categoria: etiquetaCategoria[tabla.category],
+          tabla,
+          conEmpates,
+        }));
+      }),
     )
     .catch(() => []);
 
@@ -48,8 +70,8 @@ export default async function Home() {
           </h1>
 
           <p className="mt-6 max-w-2xl text-cuerpo-lg text-tenue">
-            Consulta los equipos de la liga, los jugadores de cada categoría y,
-            muy pronto, la tabla de clasificaciones y las estadísticas de la temporada.
+            Consulta los equipos de la liga, los jugadores de cada categoría, la
+            tabla de posiciones y, muy pronto, las estadísticas de la temporada.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-3">
@@ -69,10 +91,14 @@ export default async function Home() {
         {/* ================= Clasificaciones y estadísticas ================= */}
         <section className="mx-auto max-w-pagina px-4 py-12 sm:px-6 sm:py-20">
           <div className="grid gap-4 lg:grid-cols-2">
+            {/* Sin temporadas en curso, SeccionPlaceholder muestra su aviso. */}
             <SeccionPlaceholder
-              titulo="Tabla de clasificaciones"
-              descripcion="Posiciones de cada equipo por categoría: partidos jugados, ganados, perdidos y puntos."
-            />
+              titulo="Tabla de posiciones"
+              descripcion="Las temporadas en curso, por categoría."
+              aviso="No hay temporadas en curso"
+            >
+              {diapositivas.length > 0 ? <CarruselPosiciones diapositivas={diapositivas} /> : undefined}
+            </SeccionPlaceholder>
 
             <SeccionPlaceholder
               titulo="Estadísticas"

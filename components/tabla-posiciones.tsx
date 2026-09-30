@@ -106,8 +106,15 @@ export default function TablaPosiciones({
 
     return (
         <div className={cn('space-y-3', className)}>
-            {/* `sm:p-0` también: cn no quita el `sm:p-6` del panel con un `p-0` a secas. */}
-            <Tarjeta variante="panel" className="overflow-hidden p-0 sm:p-0">
+            {/* La completa va en su propia tarjeta panel (`sm:p-0` también: cn no
+                quita el `sm:p-6` del panel con un `p-0` a secas). La compacta
+                siempre vive DENTRO de otra tarjeta (el carrusel de la portada),
+                así que usa un recuadro `rounded-item`, como pide la regla de
+                anidado de design.md. */}
+            <Tarjeta
+                variante="panel"
+                className={cn('overflow-hidden p-0 sm:p-0', compacta && 'rounded-item bg-transparent')}
+            >
                 <div className={cn(!compacta && 'overflow-x-auto')}>
                     <table className={cn('w-full tabular-nums', compacta ? 'text-meta' : 'text-cuerpo')}>
                         <thead>

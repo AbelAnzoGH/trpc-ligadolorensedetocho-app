@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { cn } from '@/lib/cn';
 
 /**
  * Ventana emergente genérica del sitio.
@@ -30,10 +31,15 @@ type ModalProps = {
     titulo: string;
     /** Texto pequeño debajo del título (categoría, conteo, etc.). */
     subtitulo?: ReactNode;
+    /**
+     * 'normal' (max-w-lg) para listas y formularios; 'amplio' (max-w-3xl)
+     * para contenido ancho, como una tabla de posiciones completa.
+     */
+    ancho?: 'normal' | 'amplio';
     children: ReactNode;
 };
 
-export default function Modal({ abierto, onCerrar, titulo, subtitulo, children }: ModalProps) {
+export default function Modal({ abierto, onCerrar, titulo, subtitulo, ancho = 'normal', children }: ModalProps) {
     // `createPortal` necesita `document`, que no existe mientras Next renderiza
     // en el servidor. Este estado se vuelve true solo después del primer
     // render en el navegador, así el HTML del servidor y el del cliente
@@ -84,7 +90,10 @@ export default function Modal({ abierto, onCerrar, titulo, subtitulo, children }
                 // stopPropagation: sin esto, cualquier clic DENTRO del panel
                 // subiría hasta el fondo y cerraría el modal sin querer.
                 onClick={(evento) => evento.stopPropagation()}
-                className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-panel border border-borde bg-superficie sm:rounded-panel"
+                className={cn(
+                    'flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-panel border border-borde bg-superficie sm:rounded-panel',
+                    ancho === 'amplio' ? 'max-w-3xl' : 'max-w-lg',
+                )}
             >
                 {/* ---------- Encabezado fijo ---------- */}
                 <div className="flex items-start justify-between gap-4 border-b border-borde px-6 py-5">

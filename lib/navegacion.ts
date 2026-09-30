@@ -12,6 +12,7 @@ export const enlacesPublicos: Enlace[] = [
     { href: '/', etiqueta: 'Inicio' },
     { href: '/equipos', etiqueta: 'Equipos' },
     { href: '/jugadores', etiqueta: 'Jugadores' },
+    { href: '/posiciones', etiqueta: 'Posiciones' },
     { href: '/ligas', etiqueta: 'Temporadas' },
 ];
 
