@@ -1,5 +1,7 @@
 import { teamCategories, type TeamCategory } from '@/lib/team-schema';
 import type { GamePhase, GameStatus } from '@/lib/game-schema';
+import type { SeasonStatus } from '@/lib/season-schema';
+import type { LeagueRef } from '@/lib/season-ui';
 
 /**
  * La TABLA DE POSICIONES. No se guarda en la base: se CALCULA cada vez a
@@ -204,3 +206,21 @@ export const calcularTablas = (
 
 /** "+84", "0", "−12" — la DIF y los PTS se leen mejor con signo. */
 export const conSigno = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
+
+// ---------------------------------------------------------------------------
+// TIPOS DE RESPUESTA (lib/server/standings-controller.ts)
+// Si cambias el select de allá, actualiza esto también.
+// ---------------------------------------------------------------------------
+
+/** Las tablas de una temporada, con lo necesario para titularlas ("LDT VII"). */
+export type PosicionesTemporada = TablasTemporada & {
+    temporada: { id: string; number: number; status: SeasonStatus; league: LeagueRef };
+};
+
+export type ListActiveStandingsResponse = {
+    status: string;
+    results: number;
+    data: { temporadas: PosicionesTemporada[] };
+};
+
+export type StandingsResponse = { status: string; data: PosicionesTemporada };
