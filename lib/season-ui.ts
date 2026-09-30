@@ -87,12 +87,6 @@ export type TeamSeason = {
     id: string;
     seasonId: string;
     category: TeamCategory;
-    gamesPlayed: number;
-    wins: number;
-    losses: number;
-    ties: number;
-    pointsFor: number;
-    pointsAgainst: number;
     team: { id: string; name: string; logoUrl: string | null };
     season: { id: string; number: number; status: SeasonStatus; league: LeagueRef };
     _count: { memberships: number };

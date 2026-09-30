@@ -43,12 +43,6 @@ const teamSeasonSelect = {
     id: true,
     seasonId: true,
     category: true,
-    gamesPlayed: true,
-    wins: true,
-    losses: true,
-    ties: true,
-    pointsFor: true,
-    pointsAgainst: true,
     // Lo "de siempre" viene del equipo: nombre y logo se subieron UNA vez.
     team: { select: { id: true, name: true, logoUrl: true } },
     season: { select: { id: true, number: true, status: true, league: { select: leagueRefSelect } } },

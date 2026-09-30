@@ -159,13 +159,9 @@ model TeamSeason {
 
   category TeamCategoryEnumType
 
-  // Estadísticas del equipo en ESTA inscripción (se capturan a mano por ahora).
-  gamesPlayed   Int @default(0)
-  wins          Int @default(0)
-  losses        Int @default(0)
-  ties          Int @default(0)
-  pointsFor     Int @default(0) // desempate de la tabla
-  pointsAgainst Int @default(0) // desempate de la tabla
+  // Sin estadísticas guardadas: el récord del equipo (G, P, E, PF, PC) se
+  // CALCULA a partir de sus partidos (lib/tabla-ui.ts). Los contadores que
+  // se capturaban a mano se quitaron en la migración quitar_contadores_inscripcion.
 
   memberships TeamMembership[]
 

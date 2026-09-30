@@ -17,23 +17,9 @@ import {
     type CopyRosterResponse,
 } from '@/lib/season-ui';
 
-// Las estadísticas del EQUIPO en esta inscripción. Se capturan a mano hasta
-// que exista el sprint de partidos. Mismo truco que camposEstadistica de
-// player-ui.ts: recorrer un arreglo en vez de escribir seis inputs a mano.
-const camposEquipo = [
-    { key: 'gamesPlayed', label: 'PJ', titulo: 'Partidos jugados' },
-    { key: 'wins', label: 'G', titulo: 'Ganados' },
-    { key: 'losses', label: 'P', titulo: 'Perdidos' },
-    { key: 'ties', label: 'E', titulo: 'Empates' },
-    { key: 'pointsFor', label: 'PF', titulo: 'Puntos a favor' },
-    { key: 'pointsAgainst', label: 'PC', titulo: 'Puntos en contra' },
-] as const;
-
-type CampoEquipo = (typeof camposEquipo)[number]['key'];
-
 /**
  * Una inscripción dentro del panel de temporadas. Tres acciones:
- *   - Capturar las estadísticas del equipo en esta temporada
+ *   - Abrir su plantel (registrar jugadores)
  *   - Copiar la plantilla de otra inscripción del MISMO equipo (solo si está vacía)
  *   - Dar de baja la inscripción (solo si está vacía)
  */
@@ -50,17 +36,6 @@ export default function InscripcionFila({
     const [guardando, setGuardando] = useState(false);
     // Modal de plantel (el atajo para registrar jugadores de este equipo).
     const [plantelAbierto, setPlantelAbierto] = useState(false);
-
-    // --- estadísticas ---
-    const [editando, setEditando] = useState(false);
-    const [stats, setStats] = useState<Record<CampoEquipo, number>>(() => ({
-        gamesPlayed: inscripcion.gamesPlayed,
-        wins: inscripcion.wins,
-        losses: inscripcion.losses,
-        ties: inscripcion.ties,
-        pointsFor: inscripcion.pointsFor,
-        pointsAgainst: inscripcion.pointsAgainst,
-    }));
 
     // --- copiar plantilla ---
     const [copiando, setCopiando] = useState(false);
@@ -82,15 +57,6 @@ export default function InscripcionFila({
         } finally {
             setGuardando(false);
         }
-    };
-
-    const onGuardarStats = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const ok = await ejecutar(
-            () => trpcMutation('updateTeamSeason', { id: inscripcion.id, ...stats }),
-            'Estadísticas guardadas',
-        );
-        if (ok) setEditando(false);
     };
 
     // Busca las OTRAS inscripciones de este equipo que tengan jugadores: son
@@ -161,9 +127,6 @@ export default function InscripcionFila({
                     <Boton variante="fantasma" tamano="sm" onClick={() => setPlantelAbierto(true)}>
                         Plantel
                     </Boton>
-                    <Boton variante="fantasma" tamano="sm" onClick={() => setEditando((v) => !v)} aria-expanded={editando}>
-                        {editando ? 'Cerrar' : 'Estadísticas'}
-                    </Boton>
                     {vacia && !cerrada && (
                         <Boton variante="secundario" tamano="sm" onClick={abrirCopiar} disabled={guardando || copiando}>
                             Copiar plantilla
@@ -176,47 +139,6 @@ export default function InscripcionFila({
                     )}
                 </span>
             </div>
-
-            {/* ---------- Resumen de estadísticas ---------- */}
-            {!editando && (
-                <p className="text-leyenda tabular-nums text-tenue">
-                    {camposEquipo.map((c) => (
-                        <span key={c.key} title={c.titulo} className="mr-3 inline-block">
-                            {c.label} <span className="font-semibold text-tinta-2">{inscripcion[c.key]}</span>
-                        </span>
-                    ))}
-                </p>
-            )}
-
-            {/* ---------- Edición de estadísticas ---------- */}
-            {editando && (
-                <form onSubmit={onGuardarStats} className="space-y-4">
-                    <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-                        {camposEquipo.map((c) => (
-                            <div key={c.key} className="flex flex-col gap-1.5">
-                                <label
-                                    htmlFor={`${inscripcion.id}-${c.key}`}
-                                    title={c.titulo}
-                                    className="truncate text-leyenda text-tenue"
-                                >
-                                    {c.titulo}
-                                </label>
-                                <input
-                                    id={`${inscripcion.id}-${c.key}`}
-                                    type="number"
-                                    min={0}
-                                    value={stats[c.key]}
-                                    onChange={(e) => setStats({ ...stats, [c.key]: Number(e.target.value) })}
-                                    className={`${claseCampo} w-full tabular-nums`}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                    <Boton type="submit" tamano="sm" disabled={guardando}>
-                        {guardando ? 'Guardando…' : 'Guardar estadísticas'}
-                    </Boton>
-                </form>
-            )}
 
             {/* ---------- Copiar plantilla ---------- */}
             {/* Subformulario abierto: borde fuerte (design.md). */}

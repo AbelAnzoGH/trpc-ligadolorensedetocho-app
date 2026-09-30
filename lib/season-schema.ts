@@ -129,22 +129,11 @@ export const enrollTeamSchema = z.object({
     category: teamCategorySchema,
 });
 
-const statSchema = (etiqueta: string) =>
-    z
-        .number({ error: `${etiqueta} debe ser un número` })
-        .int({ error: `${etiqueta} debe ser un número entero` })
-        .min(0, { error: `${etiqueta} no puede ser negativo` });
-
+// Solo la categoría: las estadísticas del equipo ya no se capturan, se
+// calculan a partir de los partidos (lib/tabla-ui.ts).
 export const updateTeamSeasonSchema = z.object({
     id: idSchema("de la inscripción"),
     category: teamCategorySchema.optional(),
-
-    gamesPlayed: statSchema("Los partidos jugados").optional(),
-    wins: statSchema("Los ganados").optional(),
-    losses: statSchema("Los perdidos").optional(),
-    ties: statSchema("Los empates").optional(),
-    pointsFor: statSchema("Los puntos a favor").optional(),
-    pointsAgainst: statSchema("Los puntos en contra").optional(),
 });
 
 export const teamSeasonIdSchema = z.object({ id: idSchema("de la inscripción") });
