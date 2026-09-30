@@ -48,6 +48,9 @@ La idea de fondo no cambió respecto a la referencia: **los grises cargan casi t
 | 2026-09-25 | **Ojo con `space-y-*` en Tailwind v4:** pone el margen *abajo* de cada hijo con especificidad cero, así que un `mb-0` en un hijo lo anula. | Nos pasó en /manejar-jugadores: el título quedó pegado a los filtros. |
 | 2026-09-25 | **Migración terminada.** Todas las pantallas usan el sistema; se borraron `inputClass`, `claseEstadoPartido`, `claseEstado`, las props viejas de `LoadingButton` y `tailwind.config.ts`, y se apagó la paleta por defecto de Tailwind. | A partir de aquí, lo nuevo se construye con los componentes y patrones de este documento; lo que no exista se agrega aquí primero. |
 | 2026-09-25 | **Pendiente (comportamiento, no diseño):** “Eliminar” no pide confirmación en ninguna pantalla. La regla del botón `peligro` dice que debería. | Queda anotado; se decide aparte porque cambia cómo funciona la app. |
+| 2026-09-30 | **Tabla de posiciones** (`components/tabla-posiciones.tsx`), en variante completa y compacta; ver *Patrones → Tabla de posiciones*. | Sprint de la tabla calculada. Una sola pieza para /posiciones, el modal "Ver más", el carrusel de la portada y la página de la temporada. |
+| 2026-09-30 | **Excepción al patrón *Tablas*: la tabla de posiciones no lleva hover de fila.** | Solo el equipo es clicable (abre su plantel). Un hover en toda la fila prometería un clic que no existe; misma regla que las tarjetas de jugador. |
+| 2026-09-30 | **Pendiente (siguiente sprint):** marcar en la tabla a los lugares que califican a playoffs. | Abel lo quiere, pero queda fuera de este sprint. Habrá que decidir cuántos califican (¿cambia por temporada?) y cómo se marca sin romper “gris primero”. |
 | 2026-09-25 | **Plantel editable en un modal** (`components/plantel-modal.tsx`), abierto con “Plantel” (`fantasma sm`) desde cada equipo en /manejar-equipos y desde cada inscripción en /manejar-temporadas. Dos modos con `claseChip`: “Jugador nuevo” y “Ya registrado”. | Decisión de Abel: registrar un plantel desde el equipo es más rápido que ir persona por persona en /manejar-jugadores. Un solo componente en los dos lugares para que se vean y funcionen igual. |
 
 ---
@@ -423,7 +426,17 @@ Una sola clase, **`claseChip(activa)`** (`components/ui/chip.ts`), sobre un `<la
 Si un `<select>` va junto a botones `sm` en una fila de lista, se compacta a su altura con `cn(claseCampo, 'h-8 py-0 text-meta')`. **Con `cn()`, no con un template string:** `py-0` y el `py-2` de `claseCampo` chocan, y con un template string ganaría el que Tailwind escriba después en el CSS.
 
 ### Tablas (equipos, jugadores, posiciones)
-Dentro de `<Tarjeta variante="panel" className="p-0 overflow-hidden">`. Encabezados en `text-leyenda uppercase tracking-wider text-tenue`, sin fondo. Filas con `border-t border-borde`, `hover:bg-superficie-2/50` y celdas `px-4 py-3 text-meta`. Nada de filas de colores alternos (cebra). En móvil, desplazamiento horizontal (`overflow-x-auto`) o una tarjeta por fila.
+Dentro de `<Tarjeta variante="panel" className="overflow-hidden p-0 sm:p-0">` (el `sm:p-0` hace falta: `cn` no quita el `sm:p-6` del panel con un `p-0` a secas). Encabezados en `text-leyenda uppercase tracking-wider text-tenue`, sin fondo. Filas con `border-t border-borde`, `hover:bg-superficie-2/50` y celdas `px-4 py-3 text-meta`. Nada de filas de colores alternos (cebra). En móvil, desplazamiento horizontal (`overflow-x-auto`) o una tarjeta por fila.
+
+### Tabla de posiciones — ✅ implementado
+`components/tabla-posiciones.tsx`, una tabla por categoría; el título lo pone quien la usa. Sigue el patrón *Tablas* con estos ajustes:
+- **Completa:** `#  Equipo  PJ  G  P  (E)  PF  PC  DIF  PTS`, en `text-cuerpo`. **Compacta** (carrusel): `#  Equipo  G  P  (E)  PTS`, en `text-meta` y con celdas más apretadas. La columna E solo existe si hubo algún empate en la temporada.
+- Números en `tabular-nums` alineados a la derecha, en `tinta-2`; **PTS** en `font-semibold text-tinta` porque es lo que decide la tabla. DIF y PTS con signo (`+84`, `−12`). La posición en `tenue`. Sin colores: ni verdes para positivos ni rojos para negativos.
+- Encabezados abreviados con `<abbr title="Partidos jugados">PJ</abbr>`.
+- **Logo (`LogoEquipo` de 28px, 24px en la compacta) + nombre son un solo `<button>`** que abre el plantel (`EquipoRosterModal`). El nombre se subraya al pasar el mouse, como `claseEnlace` pero sin el subrayado en reposo.
+- **Las filas no reaccionan al hover:** la fila no es clicable, solo el equipo.
+- En teléfono, la completa se desliza de lado dentro de su tarjeta (`overflow-x-auto`) y la celda `#` + equipo queda fija (`sticky left-0 bg-superficie`); el nombre se corta con `truncate`.
+- Sin partidos jugados, la tabla se muestra igual (todos en ceros, orden alfabético) con una `<Nota>` debajo.
 
 ### Cinta de logos (marquee) — ✅ implementado
 `components/marquee-equipos.tsx`. `border-y border-borde`, sin fondo. Logos en `grayscale opacity-60`; al pasar el mouse vuelven al color (`hover:grayscale-0 hover:opacity-100`), y la cinta se pausa. Así no compite con el contenido; es prueba social, como en la referencia. Los desvanecidos de los bordes van `from-canvas` a transparente (única excepción a “sin degradados”: no decoran, desvanecen). Cada logo lleva el nombre del equipo como texto alternativo.

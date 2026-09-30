@@ -38,8 +38,12 @@ export default function EquipoRosterModal({
     temporada,
     onCerrar,
 }: {
-    /** La inscripción cuyo plantel se muestra, o null si no hay ninguna abierta. */
-    inscripcion: TeamSeason | null;
+    /**
+     * La inscripción cuyo plantel se muestra, o null si no hay ninguna abierta.
+     * Solo se usan id, categoría y equipo: así también la puede abrir la tabla
+     * de posiciones, que no trae la inscripción completa.
+     */
+    inscripcion: Pick<TeamSeason, 'id' | 'category' | 'team'> | null;
     /** Nombre de la temporada para el subtítulo ("LDT VII"). */
     temporada?: string;
     onCerrar: () => void;
