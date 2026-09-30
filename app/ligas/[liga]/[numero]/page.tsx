@@ -9,6 +9,7 @@ import { nombreTemporada, etiquetaEstado, tonoEstadoTemporada } from '@/lib/seas
 import type { Game } from '@/lib/game-ui';
 import TemporadaEquipos from './temporada-equipos';
 import TemporadaPartidos from './temporada-partidos';
+import TemporadaPosiciones from './temporada-posiciones';
 
 /**
  * La página PÚBLICA de cada temporada: /ligas/ldt/7, /ligas/shadows/2, ...
@@ -91,9 +92,11 @@ export default async function TemporadaPage({
                 />
 
                 {/* Cada sección de la temporada es un componente aparte:
-                    agregar una (la tabla de posiciones, el próximo sprint)
-                    es agregar una línea aquí, sin reescribir la página. */}
+                    agregar una es agregar una línea aquí, sin reescribir la
+                    página. Orden (decisión de Abel): la tabla primero, porque
+                    es lo que busca quien entra a una temporada. */}
                 <div className="space-y-16">
+                    <TemporadaPosiciones inscripciones={season.teamSeasons} partidos={partidos} temporada={titulo} />
                     <TemporadaPartidos partidos={partidos} categorias={season.categories} />
                     <TemporadaEquipos inscripciones={season.teamSeasons} temporada={titulo} />
                 </div>

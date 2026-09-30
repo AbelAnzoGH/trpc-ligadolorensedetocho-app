@@ -3,10 +3,9 @@ import Header from '@/components/header';
 import { Pagina, EncabezadoPagina, TituloSeccion } from '@/components/ui/pagina';
 import { MensajeError, Vacio } from '@/components/ui/estado';
 import { claseBoton } from '@/components/ui/boton';
-import TablaPosiciones from '@/components/tabla-posiciones';
+import TablasPorCategoria from '@/components/tablas-por-categoria';
 import { createAsyncCaller } from '@/app/api/trpc/trpc-router';
 import { nombreTemporada, urlTemporada } from '@/lib/season-ui';
-import { etiquetaCategoria } from '@/lib/team-ui';
 import VerMasTablas from './ver-mas-tablas';
 
 /**
@@ -52,7 +51,8 @@ export default async function PosicionesPage() {
                 )}
 
                 <div className="space-y-16">
-                    {temporadas?.map(({ temporada, tablas, conEmpates }) => {
+                    {temporadas?.map((posiciones) => {
+                        const { temporada } = posiciones;
                         const nombre = nombreTemporada(temporada.league, temporada.number);
 
                         return (
@@ -70,24 +70,7 @@ export default async function PosicionesPage() {
                                     {nombre}
                                 </TituloSeccion>
 
-                                {tablas.length === 0 ? (
-                                    <Vacio>Todavía no hay equipos inscritos en esta temporada.</Vacio>
-                                ) : (
-                                    <div className="space-y-8">
-                                        {tablas.map((tabla) => (
-                                            <div key={tabla.category} className="space-y-3">
-                                                <h3 className="text-leyenda font-medium uppercase tracking-wider text-tenue">
-                                                    {etiquetaCategoria[tabla.category]}
-                                                </h3>
-                                                <TablaPosiciones
-                                                    tabla={tabla}
-                                                    conEmpates={conEmpates}
-                                                    temporada={nombre}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                <TablasPorCategoria posiciones={posiciones} temporada={nombre} />
                             </section>
                         );
                     })}
