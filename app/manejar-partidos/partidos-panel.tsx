@@ -10,6 +10,7 @@ import SelectorTemporada from '@/components/selector-temporada';
 import type { TeamCategory } from '@/lib/team-schema';
 import { etiquetaCategoria } from '@/lib/team-ui';
 import Boton from '@/components/ui/boton';
+import { useConfirmar } from '@/components/use-confirmar';
 import Tarjeta from '@/components/ui/tarjeta';
 import { TituloSeccion } from '@/components/ui/pagina';
 import { Cargando, MensajeError, Nota, Vacio } from '@/components/ui/estado';
@@ -48,6 +49,7 @@ export default function PartidosPanel() {
     const [partidos, setPartidos] = useState<Game[]>([]);
     const [cargandoTemporada, setCargandoTemporada] = useState(false);
     const [guardando, setGuardando] = useState(false);
+    const { confirmar, modalConfirmar } = useConfirmar();
 
     // Filtro del rol por categoría ('' = todas). Se filtra en el navegador:
     // los partidos de la temporada ya están cargados.
@@ -123,8 +125,18 @@ export default function PartidosPanel() {
     const onCrearSede = (datos: { name: string; address: string | null }) =>
         ejecutar(() => trpcMutation('createVenue', datos), `Sede ${datos.name} registrada`);
 
-    const onEliminarSede = (sede: Venue) =>
-        ejecutar(() => trpcMutation('deleteVenue', { id: sede.id }), `Sede ${sede.name} eliminada`);
+    const onEliminarSede = async (sede: Venue) => {
+        const ok = await confirmar({
+            titulo: 'Eliminar sede',
+            mensaje: (
+                <>
+                    ¿Estás seguro de que quieres eliminar la sede <strong className="text-tinta">{sede.name}</strong>?
+                </>
+            ),
+        });
+        if (!ok) return;
+        await ejecutar(() => trpcMutation('deleteVenue', { id: sede.id }), `Sede ${sede.name} eliminada`);
+    };
 
     // ---------- Partidos ----------
     const onCrearPartido = (datos: DatosPartido) =>
@@ -143,7 +155,23 @@ export default function PartidosPanel() {
             p.status === 'suspendido' ? 'Partido reactivado' : 'Partido suspendido',
         );
 
-    const onBorrar = (p: Game) => ejecutar(() => trpcMutation('deleteGame', { id: p.id }), 'Partido borrado');
+    const onBorrar = async (p: Game) => {
+        const ok = await confirmar({
+            titulo: 'Borrar partido',
+            mensaje: (
+                <>
+                    ¿Estás seguro de que quieres borrar el partido{' '}
+                    <strong className="text-tinta">
+                        {p.homeTeamSeason.team.name} vs {p.awayTeamSeason.team.name}
+                    </strong>
+                    ?
+                </>
+            ),
+            textoConfirmar: 'Borrar',
+        });
+        if (!ok) return;
+        await ejecutar(() => trpcMutation('deleteGame', { id: p.id }), 'Partido borrado');
+    };
 
     if (cargando) return <Cargando texto="Cargando ligas…" />;
     if (error) return <MensajeError>Error: {error}</MensajeError>;
@@ -306,6 +334,8 @@ export default function PartidosPanel() {
                     onCambio={recargarTodo}
                 />
             )}
+            {/* Confirmación de lo destructivo (components/use-confirmar.tsx). */}
+            {modalConfirmar}
         </div>
     );
 }

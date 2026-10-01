@@ -7,6 +7,7 @@ import { etiquetaCategoria } from '@/lib/team-ui';
 import LogoEquipo from '@/components/logo-equipo';
 import PlantelModal from '@/components/plantel-modal';
 import Boton from '@/components/ui/boton';
+import { useConfirmar } from '@/components/use-confirmar';
 import { Nota } from '@/components/ui/estado';
 import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
 import { claseAccionesFila } from '@/components/ui/lista';
@@ -34,6 +35,7 @@ export default function InscripcionFila({
     onCambio: () => Promise<void>;
 }) {
     const [guardando, setGuardando] = useState(false);
+    const { confirmar, modalConfirmar } = useConfirmar();
     // Modal de plantel (el atajo para registrar jugadores de este equipo).
     const [plantelAbierto, setPlantelAbierto] = useState(false);
 
@@ -100,11 +102,25 @@ export default function InscripcionFila({
         }
     };
 
-    const onDarDeBaja = () =>
-        ejecutar(
+    const onDarDeBaja = async () => {
+        const ok = await confirmar({
+            titulo: 'Dar de baja la inscripción',
+            mensaje: (
+                <>
+                    ¿Estás seguro de que quieres dar de baja a{' '}
+                    <strong className="text-tinta">{inscripcion.team.name}</strong> de esta temporada (
+                    {etiquetaCategoria[inscripcion.category].toLowerCase()})?
+                </>
+            ),
+            textoConfirmar: 'Dar de baja',
+            aviso: 'El equipo no se borra: solo deja de estar inscrito en esta temporada y categoría.',
+        });
+        if (!ok) return;
+        await ejecutar(
             () => trpcMutation('removeTeamSeason', { id: inscripcion.id }),
             `${inscripcion.team.name} dado de baja de esta temporada`,
         );
+    };
 
     return (
         // Cada inscripción es un elemento dentro del bloque 3: fondo canvas
@@ -194,6 +210,8 @@ export default function InscripcionFila({
                     onCambio={onCambio}
                 />
             )}
+            {/* Confirmación de lo destructivo (components/use-confirmar.tsx). */}
+            {modalConfirmar}
         </li>
     );
 }

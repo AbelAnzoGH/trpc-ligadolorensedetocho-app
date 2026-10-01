@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 
@@ -25,6 +25,14 @@ import { cn } from '@/lib/cn';
  * borde fino, sin sombra. En móvil sale desde abajo como hoja (solo
  * esquinas de arriba redondeadas); desde `sm` queda centrado.
  */
+/**
+ * Pila de modales abiertos, del de abajo al de arriba. Hace falta porque un
+ * modal puede abrir otro encima (una confirmación dentro del plantel, el
+ * plantel dentro de "Ver más"): Escape debe cerrar SOLO el de arriba.
+ * Vive fuera del componente porque es una sola para toda la página.
+ */
+const pilaAbiertos: string[] = [];
+
 type ModalProps = {
     abierto: boolean;
     onCerrar: () => void;
@@ -47,19 +55,33 @@ export default function Modal({ abierto, onCerrar, titulo, subtitulo, ancho = 'n
     const [montado, setMontado] = useState(false);
     useEffect(() => setMontado(true), []);
 
-    // Escape para cerrar. El listener se pone solo cuando el modal está
-    // abierto y se quita al cerrarse (o al desmontar el componente): eso es
-    // lo que hace el `return` de dentro del useEffect.
+    // Al abrirse, este modal se pone arriba de la pila; al cerrarse, sale.
+    // Efecto aparte del de Escape a propósito: aquel se vuelve a correr cada
+    // vez que cambia onCerrar (casi en cada render), y si la pila se tocara
+    // ahí, un modal de abajo que se redibuja se "subiría" encima del otro.
+    const id = useId();
+    useEffect(() => {
+        if (!abierto) return;
+        pilaAbiertos.push(id);
+        return () => {
+            const i = pilaAbiertos.lastIndexOf(id);
+            if (i !== -1) pilaAbiertos.splice(i, 1);
+        };
+    }, [abierto, id]);
+
+    // Escape para cerrar, solo si este es el modal de ARRIBA. El listener se
+    // pone solo cuando el modal está abierto y se quita al cerrarse (o al
+    // desmontar el componente): eso es lo que hace el `return` del useEffect.
     useEffect(() => {
         if (!abierto) return;
 
         const alPresionar = (evento: KeyboardEvent) => {
-            if (evento.key === 'Escape') onCerrar();
+            if (evento.key === 'Escape' && pilaAbiertos[pilaAbiertos.length - 1] === id) onCerrar();
         };
 
         window.addEventListener('keydown', alPresionar);
         return () => window.removeEventListener('keydown', alPresionar);
-    }, [abierto, onCerrar]);
+    }, [abierto, onCerrar, id]);
 
     // Congela el scroll del fondo mientras el modal está abierto y lo
     // devuelve exactamente como estaba al cerrar.

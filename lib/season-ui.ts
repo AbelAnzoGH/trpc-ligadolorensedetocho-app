@@ -88,8 +88,8 @@ export type TeamSeason = {
     seasonId: string;
     category: TeamCategory;
     team: { id: string; name: string; logoUrl: string | null };
-    season: { id: string; number: number; status: SeasonStatus; league: LeagueRef };
-    _count: { memberships: number };
+    season: { id: string; number: number; status: SeasonStatus; categories: TeamCategory[]; league: LeagueRef };
+    _count: { memberships: number; homeGames: number; awayGames: number };
 };
 
 export type ListTeamSeasonsResponse = {

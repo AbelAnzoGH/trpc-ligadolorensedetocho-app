@@ -9,6 +9,7 @@ import { etiquetaCategoria } from '@/lib/team-ui';
 import { cn } from '@/lib/cn';
 import Avatar from '@/components/ui/avatar';
 import Boton from '@/components/ui/boton';
+import { useConfirmar } from '@/components/use-confirmar';
 import Insignia from '@/components/ui/insignia';
 import Tarjeta from '@/components/ui/tarjeta';
 import { claseCampo, claseCasilla, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
@@ -51,6 +52,7 @@ export default function JugadorCard({
     onCambio: () => Promise<void>;
 }) {
     const [guardando, setGuardando] = useState(false);
+    const { confirmar, modalConfirmar } = useConfirmar();
 
     // --- edición de la persona ---
     const [editandoPersona, setEditandoPersona] = useState(false);
@@ -132,11 +134,26 @@ export default function JugadorCard({
         if (ok) setEditandoPersona(false);
     };
 
-    const onEliminarPersona = () =>
-        ejecutar(
+    const onEliminarPersona = async () => {
+        const ok = await confirmar({
+            titulo: 'Eliminar jugador',
+            mensaje: (
+                <>
+                    ¿Estás seguro de que quieres eliminar a{' '}
+                    <strong className="text-tinta">
+                        {jugador.name} {jugador.lastName}
+                    </strong>
+                    ?
+                </>
+            ),
+            aviso: 'Se borran la persona y todas sus participaciones en equipos (con sus fotos y estadísticas). Esta acción no se puede deshacer.',
+        });
+        if (!ok) return;
+        await ejecutar(
             () => trpcMutation('deletePlayer', { id: jugador.id }),
             `${jugador.name} ${jugador.lastName} eliminado`,
         );
+    };
 
     const onAgregarAEquipo = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -233,11 +250,24 @@ export default function JugadorCard({
         }
     };
 
-    const onQuitarDeEquipo = (membresia: Membership) =>
-        ejecutar(
+    const onQuitarDeEquipo = async (membresia: Membership) => {
+        const ok = await confirmar({
+            titulo: 'Quitar del equipo',
+            mensaje: (
+                <>
+                    ¿Estás seguro de que quieres quitar a {jugador.name} {jugador.lastName} de{' '}
+                    <strong className="text-tinta">{membresia.teamSeason.team.name}</strong>?
+                </>
+            ),
+            textoConfirmar: 'Quitar',
+            aviso: 'La persona no se borra, pero se pierden su número, su foto y sus estadísticas en ese equipo.',
+        });
+        if (!ok) return;
+        await ejecutar(
             () => trpcMutation('removeMembership', { id: membresia.id }),
             `Quitado de ${membresia.teamSeason.team.name}`,
         );
+    };
 
     // Todos los campos de esta tarjeta ocupan su celda completa.
     const campo = `${claseCampo} w-full`;
@@ -579,6 +609,8 @@ export default function JugadorCard({
                     </Boton>
                 )
             )}
+            {/* Confirmación de lo destructivo (components/use-confirmar.tsx). */}
+            {modalConfirmar}
         </Tarjeta>
     );
 }

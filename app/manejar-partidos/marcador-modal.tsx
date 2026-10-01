@@ -7,6 +7,7 @@ import { trpcMutation } from '@/utils/trpc-fetch';
 import { etiquetaCategoria } from '@/lib/team-ui';
 import { cn } from '@/lib/cn';
 import Boton from '@/components/ui/boton';
+import { useConfirmar } from '@/components/use-confirmar';
 import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
 import { PUNTOS_DEFAULT } from '@/lib/game-schema';
 import { formatoFechaPartido, type Game } from '@/lib/game-ui';
@@ -34,6 +35,7 @@ export default function MarcadorModal({
     const [local, setLocal] = useState(partido?.homeScore != null ? String(partido.homeScore) : '');
     const [visitante, setVisitante] = useState(partido?.awayScore != null ? String(partido.awayScore) : '');
     const [guardando, setGuardando] = useState(false);
+    const { confirmar, modalConfirmar } = useConfirmar();
 
     if (!partido) return null;
 
@@ -79,8 +81,19 @@ export default function MarcadorModal({
             `Default: ${ausente} no se presentó`,
         );
 
-    const onDeshacer = () =>
-        ejecutar(() => trpcMutation('undoResult', { id: partido.id }), 'Resultado deshecho: el partido vuelve a programado');
+    const onDeshacer = async () => {
+        const ok = await confirmar({
+            titulo: 'Deshacer resultado',
+            mensaje: '¿Estás seguro de que quieres deshacer el resultado? El partido vuelve a programado y deja de contar en la tabla de posiciones.',
+            textoConfirmar: 'Deshacer',
+            aviso: 'El marcador se borra: para que vuelva a contar habrá que capturarlo otra vez.',
+        });
+        if (!ok) return;
+        await ejecutar(
+            () => trpcMutation('undoResult', { id: partido.id }),
+            'Resultado deshecho: el partido vuelve a programado',
+        );
+    };
 
     // Campo del marcador: grande y centrado, se lee de un vistazo. Con cn()
     // porque cambia el alto, el relleno y el tamaño de letra de claseCampo.
@@ -173,6 +186,8 @@ export default function MarcadorModal({
                     </div>
                 )}
             </div>
+            {/* Confirmación de lo destructivo (components/use-confirmar.tsx). */}
+            {modalConfirmar}
         </Modal>
     );
 }

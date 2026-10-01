@@ -22,6 +22,8 @@ import {
 } from '@/lib/team-ui';
 import SelectorImagen from '@/components/selector-imagen';
 import PlantelModal from '@/components/plantel-modal';
+import { useConfirmar } from '@/components/use-confirmar';
+import InscripcionesEquipo from './inscripciones-equipo';
 
 /**
  * Panel de administración de equipos: el CRUD completo, con logo opcional.
@@ -29,9 +31,11 @@ import PlantelModal from '@/components/plantel-modal';
  * del lado del servidor antes de mostrar nada.
  *
  * Aquí se maneja el equipo como IDENTIDAD permanente (nombre y logo). La
- * categoría, el plantel y las estadísticas son de cada inscripción, y esas
- * se manejan en /manejar-temporadas. Como atajo, al crear un equipo nuevo
- * se puede inscribir de una vez en una temporada.
+ * categoría y el plantel son de cada inscripción, y esas se manejan en
+ * /manejar-temporadas. Como atajos: al crear un equipo nuevo se puede
+ * inscribir de una vez en una temporada, y al editarlo se pueden corregir
+ * sus inscripciones vacías (cambiar la categoría o darlas de baja), para
+ * arreglar un equipo inscrito por error (ver inscripciones-equipo.tsx).
  */
 export default function EquiposPanel() {
     const [equipos, setEquipos] = useState<Team[]>([]);
@@ -40,6 +44,7 @@ export default function EquiposPanel() {
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { confirmar, modalConfirmar } = useConfirmar();
 
     // Formulario. Si editandoId tiene valor, el formulario está en modo edición.
     const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -159,6 +164,17 @@ export default function EquiposPanel() {
     };
 
     const onEliminar = async (equipo: Team) => {
+        const ok = await confirmar({
+            titulo: 'Eliminar equipo',
+            mensaje: (
+                <>
+                    ¿Estás seguro de que quieres eliminar este equipo?{' '}
+                    <strong className="text-tinta">{equipo.name}</strong> y su logo se borrarán.
+                </>
+            ),
+        });
+        if (!ok) return;
+
         setGuardando(true);
         try {
             await trpcMutation('deleteTeam', { id: equipo.id });
@@ -261,6 +277,10 @@ export default function EquiposPanel() {
                         )}
                     </div>
                 </form>
+
+                {/* Fuera del <form>: cada inscripción tiene sus propios botones
+                    y no debe enviar el formulario del equipo. */}
+                {editandoId && <InscripcionesEquipo key={editandoId} teamId={editandoId} onCambio={cargarEquipos} />}
             </Tarjeta>
 
             {/* ---------- Listado administrable ---------- */}
@@ -306,8 +326,10 @@ export default function EquiposPanel() {
                                     <Boton variante="fantasma" tamano="sm" onClick={() => onEditar(equipo)}>
                                         Editar
                                     </Boton>
-                                    {/* Un equipo con historial no se borra (el backend
-                                        lo rechaza); ni siquiera se ofrece el botón. */}
+                                    {/* Un equipo con inscripciones no se borra (el backend
+                                        lo rechaza); ni siquiera se ofrece el botón. Si la
+                                        inscripción fue un error y está vacía, se da de baja
+                                        desde "Editar" y entonces aparece "Eliminar". */}
                                     {equipo._count.teamSeasons === 0 && (
                                         <Boton
                                             variante="peligro"
@@ -328,6 +350,8 @@ export default function EquiposPanel() {
             {plantelDe && (
                 <PlantelModal equipo={plantelDe} onCerrar={() => setPlantelDe(null)} />
             )}
+
+            {modalConfirmar}
         </div>
     );
 }

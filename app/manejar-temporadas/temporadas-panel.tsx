@@ -20,6 +20,7 @@ import {
 } from '@/lib/season-ui';
 import { cn } from '@/lib/cn';
 import Boton from '@/components/ui/boton';
+import { useConfirmar } from '@/components/use-confirmar';
 import Insignia from '@/components/ui/insignia';
 import Tarjeta from '@/components/ui/tarjeta';
 import { TituloSeccion } from '@/components/ui/pagina';
@@ -46,6 +47,7 @@ import CategoriasTemporada from './categorias-temporada';
 export default function TemporadasPanel() {
     const { ligas, cargando, error, seasonId, setSeasonId, recargar, elegida } = useLigas();
     const [guardando, setGuardando] = useState(false);
+    const { confirmar, modalConfirmar } = useConfirmar();
 
     // Ejecuta una mutación con el patrón de siempre: toast de éxito o de error
     // y recarga. Devuelve true si salió bien, para limpiar formularios.
@@ -141,8 +143,18 @@ export default function TemporadasPanel() {
         return ejecutar(() => trpcMutation('updateSeason', { id, categories }), `${nombre}: categorías actualizadas`);
     };
 
-    const onEliminarTemporada = (id: string, nombre: string) =>
-        ejecutar(() => trpcMutation('deleteSeason', { id }), `${nombre} eliminada`);
+    const onEliminarTemporada = async (id: string, nombre: string) => {
+        const ok = await confirmar({
+            titulo: 'Eliminar temporada',
+            mensaje: (
+                <>
+                    ¿Estás seguro de que quieres eliminar <strong className="text-tinta">{nombre}</strong>?
+                </>
+            ),
+        });
+        if (!ok) return;
+        await ejecutar(() => trpcMutation('deleteSeason', { id }), `${nombre} eliminada`);
+    };
 
     // ======================= 3. INSCRIPCIONES =======================
     const [equipos, setEquipos] = useState<Team[]>([]);
@@ -483,6 +495,8 @@ export default function TemporadasPanel() {
                     </ul>
                 )}
             </Tarjeta>
+            {/* Confirmación de lo destructivo (components/use-confirmar.tsx). */}
+            {modalConfirmar}
         </div>
     );
 }

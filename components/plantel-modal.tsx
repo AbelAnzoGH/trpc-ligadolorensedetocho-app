@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import Modal from '@/components/modal';
 import Avatar from '@/components/ui/avatar';
 import Boton from '@/components/ui/boton';
+import { useConfirmar } from '@/components/use-confirmar';
 import Insignia from '@/components/ui/insignia';
 import { Cargando, MensajeError, Nota, Vacio } from '@/components/ui/estado';
 import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
@@ -67,6 +68,7 @@ export default function PlantelModal({
     const [cargandoPlantel, setCargandoPlantel] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [guardando, setGuardando] = useState(false);
+    const { confirmar, modalConfirmar } = useConfirmar();
 
     // ---------- Formulario ----------
     const [modo, setModo] = useState<'nuevo' | 'registrado'>('nuevo');
@@ -232,6 +234,22 @@ export default function PlantelModal({
     };
 
     const onQuitar = async (m: MembershipConJugador) => {
+        const ok = await confirmar({
+            titulo: 'Quitar del plantel',
+            mensaje: (
+                <>
+                    ¿Estás seguro de que quieres quitar a{' '}
+                    <strong className="text-tinta">
+                        {m.player.name} {m.player.lastName}
+                    </strong>{' '}
+                    del plantel?
+                </>
+            ),
+            textoConfirmar: 'Quitar',
+            aviso: 'La persona no se borra, pero se pierden su número, su foto y sus estadísticas en este equipo.',
+        });
+        if (!ok) return;
+
         setGuardando(true);
         try {
             await trpcMutation('removeMembership', { id: m.id });
@@ -532,6 +550,8 @@ export default function PlantelModal({
                     )}
                 </div>
             )}
+            {/* Confirmación de lo destructivo (components/use-confirmar.tsx). */}
+            {modalConfirmar}
         </Modal>
     );
 }

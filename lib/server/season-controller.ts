@@ -45,8 +45,15 @@ const teamSeasonSelect = {
     category: true,
     // Lo "de siempre" viene del equipo: nombre y logo se subieron UNA vez.
     team: { select: { id: true, name: true, logoUrl: true } },
-    season: { select: { id: true, number: true, status: true, league: { select: leagueRefSelect } } },
-    _count: { select: { memberships: true } },
+    // categories: las opciones para cambiar la categoría de la inscripción.
+    season: {
+        select: { id: true, number: true, status: true, categories: true, league: { select: leagueRefSelect } },
+    },
+    // Jugadores y partidos: con cualquiera de los dos, la inscripción ya no
+    // se puede dar de baja ni cambiar de categoría (lo revisan
+    // updateTeamSeasonHandler y removeTeamSeasonHandler). La pantalla los usa
+    // para no ofrecer lo que el servidor va a rechazar.
+    _count: { select: { memberships: true, homeGames: true, awayGames: true } },
 } as const;
 
 // Orden estándar de las inscripciones: por categoría y luego por nombre.
