@@ -19,8 +19,8 @@ import { claseEnlace } from '@/components/ui/enlace';
 import { nombreTemporada, urlTemporada, type TeamSeason, type ListTeamSeasonsResponse } from '@/lib/season-ui';
 import PartidoTarjeta from '@/components/partido-tarjeta';
 import {
+    agruparPorCategoria,
     agruparPorJornada,
-    formatoDiaPartido,
     type Game,
     type Venue,
     type ListGamesResponse,
@@ -29,14 +29,36 @@ import {
 import SedesSeccion from './sedes-seccion';
 import PartidoForm, { type DatosPartido } from './partido-form';
 import MarcadorModal from './marcador-modal';
+import JornadaGrupo from './jornada-grupo';
+
+/** Misma clave que usa agruparPorJornada (lib/game-ui.ts) para identificar un grupo. */
+const claveDeGrupo = (p: Game) => (p.round != null ? `jornada-${p.round}` : `fase-${p.phase}`);
+
+/**
+ * Qué jornada se abre sola al entrar a una temporada: la del partido más
+ * reciente cuya fecha ya pasó (el mismo criterio de "última jornada jugada"
+ * de la portada). Si todavía no se juega nada, la del primer partido.
+ */
+const claveInicial = (partidos: Game[]): string | null => {
+    if (partidos.length === 0) return null;
+    const ahora = Date.now();
+    const tiempo = (p: Game) => new Date(p.scheduledAt).getTime();
+    const pasados = partidos.filter((p) => tiempo(p) <= ahora);
+    const referencia = pasados.length
+        ? pasados.reduce((a, b) => (tiempo(b) > tiempo(a) ? b : a))
+        : partidos.reduce((a, b) => (tiempo(b) < tiempo(a) ? b : a));
+    return claveDeGrupo(referencia);
+};
 
 /**
  * Panel de administración de partidos. Tres secciones:
  *
  *   1. Sedes         → registrar dónde se juega (una vez)
  *   2. Nuevo partido → armar el rol de la temporada elegida
- *   3. El rol        → los partidos agrupados por jornada, con sus acciones:
- *                      resultado (modal), editar (modal), suspender, borrar
+ *   3. El rol        → los partidos en jornadas colapsables (la más reciente
+ *                      primero), separados por categoría dentro de cada una,
+ *                      con sus acciones: resultado (modal), editar (modal),
+ *                      suspender, borrar
  *
  * Todo lo que escribe pasa por `ejecutar`, igual que en /manejar-temporadas:
  * toast de éxito o de error y recarga de lo que haya cambiado.
@@ -54,6 +76,15 @@ export default function PartidosPanel() {
     // Filtro del rol por categoría ('' = todas). Se filtra en el navegador:
     // los partidos de la temporada ya están cargados.
     const [filtroElegido, setFiltro] = useState<TeamCategory | ''>('');
+
+    // Jornadas abiertas del rol, por su clave. Se guarda junto con la
+    // temporada a la que pertenecen: al cambiar de temporada se vuelve a
+    // sembrar con la jornada que toca, y al RECARGAR la misma (después de
+    // capturar un marcador) se conservan tal como el usuario las dejó.
+    const [abiertas, setAbiertas] = useState<{ temporada: string; claves: Set<string> }>({
+        temporada: '',
+        claves: new Set(),
+    });
 
     // Modales abiertos. null = cerrado. Se guarda el partido COMPLETO para
     // que el modal pinte los nombres sin volver a pedirlos.
@@ -83,6 +114,11 @@ export default function PartidosPanel() {
             ]);
             setInscripciones(respInscripciones.data.teamSeasons);
             setPartidos(respPartidos.data.games);
+            setAbiertas((previas) => {
+                if (previas.temporada === seasonId) return previas;
+                const inicial = claveInicial(respPartidos.data.games);
+                return { temporada: seasonId, claves: new Set(inicial ? [inicial] : []) };
+            });
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Error desconocido');
         } finally {
@@ -182,7 +218,28 @@ export default function PartidosPanel() {
     const categorias = elegida?.temporada.categories ?? [];
     const filtro: TeamCategory | '' = filtroElegido && categorias.includes(filtroElegido) ? filtroElegido : '';
     const visibles = filtro ? partidos.filter((p) => p.homeTeamSeason.category === filtro) : partidos;
-    const grupos = agruparPorJornada(visibles);
+    // La jornada más reciente arriba. Los grupos sin jornada (amistosos,
+    // pretemporada, playoffs) van al final, en el orden que traen.
+    const todosLosGrupos = agruparPorJornada(visibles);
+    const numeroJornada = (g: (typeof todosLosGrupos)[number]) => g.partidos[0].round;
+    const grupos = [
+        ...todosLosGrupos.filter((g) => numeroJornada(g) != null).sort((a, b) => numeroJornada(b)! - numeroJornada(a)!),
+        ...todosLosGrupos.filter((g) => numeroJornada(g) == null),
+    ];
+    const todasAbiertas = grupos.length > 0 && grupos.every((g) => abiertas.claves.has(g.clave));
+
+    const alternarJornada = (clave: string) =>
+        setAbiertas((previas) => {
+            const claves = new Set(previas.claves);
+            if (!claves.delete(clave)) claves.add(clave);
+            return { ...previas, claves };
+        });
+
+    const alternarTodas = () =>
+        setAbiertas((previas) => ({
+            ...previas,
+            claves: todasAbiertas ? new Set() : new Set(grupos.map((g) => g.clave)),
+        }));
 
     return (
         <div className="space-y-8">
@@ -243,24 +300,31 @@ export default function PartidosPanel() {
                     <TituloSeccion
                         paso={temporadaCerrada ? 3 : 4}
                         acciones={
-                            categorias.length > 1 && (
-                                <div>
-                                    <label htmlFor="rol-filtro" className="sr-only">
-                                        Categoría
-                                    </label>
-                                    <select
-                                        id="rol-filtro"
-                                        value={filtro}
-                                        onChange={(e) => setFiltro(e.target.value as TeamCategory | '')}
-                                        className={`${claseCampo} min-w-48`}
-                                    >
-                                        <option value="">Todas las categorías</option>
-                                        {categorias.map((c) => (
-                                            <option key={c} value={c}>{etiquetaCategoria[c]}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )
+                            <div className="flex flex-wrap items-center gap-2">
+                                {grupos.length > 1 && (
+                                    <Boton variante="fantasma" tamano="sm" onClick={alternarTodas}>
+                                        {todasAbiertas ? 'Cerrar todas' : 'Abrir todas'}
+                                    </Boton>
+                                )}
+                                {categorias.length > 1 && (
+                                    <div>
+                                        <label htmlFor="rol-filtro" className="sr-only">
+                                            Categoría
+                                        </label>
+                                        <select
+                                            id="rol-filtro"
+                                            value={filtro}
+                                            onChange={(e) => setFiltro(e.target.value as TeamCategory | '')}
+                                            className={`${claseCampo} min-w-48`}
+                                        >
+                                            <option value="">Todas las categorías</option>
+                                            {categorias.map((c) => (
+                                                <option key={c} value={c}>{etiquetaCategoria[c]}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
                         }
                     >
                         El rol
@@ -272,38 +336,43 @@ export default function PartidosPanel() {
                         <Vacio>Todavía no hay partidos en esta temporada.</Vacio>
                     )}
 
-                    <div className="space-y-8">
+                    <div className="space-y-3">
                         {!cargandoTemporada &&
                             grupos.map((grupo) => (
-                                <div key={grupo.clave} className="space-y-3">
-                                    {/* Mismo título de jornada que la página pública. */}
-                                    <h3 className="text-cuerpo font-semibold text-tinta-2">
-                                        {grupo.titulo}
-                                        {/* Si toda la jornada es el mismo día, se dice UNA vez aquí
-                                            y cada fila muestra solo la hora. */}
-                                        {grupo.diaComun && (
-                                            <span className="font-normal text-tenue">
-                                                {' '}· {formatoDiaPartido(grupo.diaComun)}
-                                            </span>
-                                        )}
-                                    </h3>
-                                    <ul className="space-y-2">
-                                        {grupo.partidos.map((p) => (
-                                            <FilaPartido
-                                                key={p.id}
-                                                partido={p}
-                                                soloHora={grupo.diaComun !== null}
-                                                acciones={!temporadaCerrada}
-                                marcador={puedeCapturar}
-                                                guardando={guardando}
-                                                onResultado={() => setConMarcador(p)}
-                                                onEditar={() => setEditando(p)}
-                                                onSuspender={() => onSuspender(p)}
-                                                onBorrar={() => onBorrar(p)}
-                                            />
-                                        ))}
-                                    </ul>
-                                </div>
+                                <JornadaGrupo
+                                    key={grupo.clave}
+                                    titulo={grupo.titulo}
+                                    diaComun={grupo.diaComun}
+                                    total={grupo.partidos.length}
+                                    conResultado={grupo.partidos.filter((p) => p.status === 'finalizado').length}
+                                    abierto={abiertas.claves.has(grupo.clave)}
+                                    onAlternar={() => alternarJornada(grupo.clave)}
+                                >
+                                    {agruparPorCategoria(grupo.partidos).map(({ categoria, partidos: delaCategoria }) => (
+                                        <div key={categoria} className="space-y-2">
+                                            <h4 className="text-meta font-semibold text-tenue">
+                                                {etiquetaCategoria[categoria]}{' '}
+                                                <span className="font-normal tabular-nums">({delaCategoria.length})</span>
+                                            </h4>
+                                            <ul className="space-y-2">
+                                                {delaCategoria.map((p) => (
+                                                    <FilaPartido
+                                                        key={p.id}
+                                                        partido={p}
+                                                        soloHora={grupo.diaComun !== null}
+                                                        acciones={!temporadaCerrada}
+                                                        marcador={puedeCapturar}
+                                                        guardando={guardando}
+                                                        onResultado={() => setConMarcador(p)}
+                                                        onEditar={() => setEditando(p)}
+                                                        onSuspender={() => onSuspender(p)}
+                                                        onBorrar={() => onBorrar(p)}
+                                                    />
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ))}
+                                </JornadaGrupo>
                             ))}
                     </div>
                 </section>

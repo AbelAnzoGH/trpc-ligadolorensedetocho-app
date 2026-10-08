@@ -7,9 +7,9 @@ import { claseEnlace } from '@/components/ui/enlace';
 import PartidoCompacto from '@/components/partido-compacto';
 import PartidoDetalleModal from '@/components/partido-detalle-modal';
 import { cn } from '@/lib/cn';
-import { teamCategories, type TeamCategory } from '@/lib/team-schema';
+import type { TeamCategory } from '@/lib/team-schema';
 import { etiquetaCategoria } from '@/lib/team-ui';
-import { formatoDiaPartido, type Game } from '@/lib/game-ui';
+import { agruparPorCategoria, formatoDiaPartido, type Game } from '@/lib/game-ui';
 
 /**
  * Carrusel "Marcadores" de la portada: la ÚLTIMA JORNADA JUGADA de cada
@@ -43,15 +43,6 @@ export type DiapositivaJornada = {
 };
 
 const INTERVALO_MS = 10_000;
-
-/** Parte los partidos por categoría, en el orden de `teamCategories`. */
-const porCategoria = (partidos: Game[]) =>
-    teamCategories
-        .map((categoria) => ({
-            categoria,
-            partidos: partidos.filter((p) => p.homeTeamSeason.category === categoria),
-        }))
-        .filter((grupo) => grupo.partidos.length > 0);
 
 export default function CarruselJornadas({ diapositivas }: { diapositivas: DiapositivaJornada[] }) {
     const [indice, setIndice] = useState(0);
@@ -113,7 +104,7 @@ export default function CarruselJornadas({ diapositivas }: { diapositivas: Diapo
                             </p>
 
                             <div className="space-y-6">
-                                {porCategoria(d.partidos).map((grupo) => (
+                                {agruparPorCategoria(d.partidos).map((grupo) => (
                                     <div key={grupo.categoria} className="space-y-3">
                                         <CategoriaTitulo categoria={grupo.categoria} />
                                         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,4 +1,4 @@
-import type { TeamCategory } from '@/lib/team-schema';
+import { teamCategories, type TeamCategory } from '@/lib/team-schema';
 import type { GamePhase, GameStatus } from '@/lib/game-schema';
 import type { TonoInsignia } from '@/components/ui/insignia';
 
@@ -207,3 +207,16 @@ export const agruparPorJornada = (partidos: Game[]): GrupoPartidos[] => {
 
     return [...grupos.values()];
 };
+
+/**
+ * Parte unos partidos por categoría, en el orden fijo de la liga
+ * (`teamCategories`) y sin las categorías que no tienen partidos. La
+ * categoría se lee del equipo local: los dos lados son de la misma.
+ */
+export const agruparPorCategoria = (partidos: Game[]) =>
+    teamCategories
+        .map((categoria) => ({
+            categoria,
+            partidos: partidos.filter((p) => p.homeTeamSeason.category === categoria),
+        }))
+        .filter((grupo) => grupo.partidos.length > 0);
