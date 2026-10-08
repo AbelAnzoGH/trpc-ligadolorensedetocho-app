@@ -23,10 +23,12 @@ import {
 import SelectorImagen from '@/components/selector-imagen';
 import PlantelModal from '@/components/plantel-modal';
 import { useConfirmar } from '@/components/use-confirmar';
-import InscripcionesEquipo from './inscripciones-equipo';
+import EditarEquipoModal from './editar-equipo-modal';
 
 /**
  * Panel de administración de equipos: el CRUD completo, con logo opcional.
+ * Crear se hace en el formulario de arriba; editar (nombre, logo e
+ * inscripciones) abre EditarEquipoModal encima de la lista.
  * Solo se renderiza dentro de /manejar-equipos, que ya verificó la sesión
  * del lado del servidor antes de mostrar nada.
  *
@@ -41,13 +43,14 @@ export default function EquiposPanel() {
     const [equipos, setEquipos] = useState<Team[]>([]);
     // Equipo cuyo plantel se está editando. null = modal cerrado.
     const [plantelDe, setPlantelDe] = useState<Team | null>(null);
+    // Equipo que se está editando (nombre, logo, inscripciones). null = modal cerrado.
+    const [editando, setEditando] = useState<Team | null>(null);
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { confirmar, modalConfirmar } = useConfirmar();
 
-    // Formulario. Si editandoId tiene valor, el formulario está en modo edición.
-    const [editandoId, setEditandoId] = useState<string | null>(null);
+    // Formulario de equipo NUEVO. La edición vive en EditarEquipoModal.
     const [nombre, setNombre] = useState('');
 
     // --- Inscripción opcional al crear (solo en modo "nuevo") ---
@@ -64,15 +67,11 @@ export default function EquiposPanel() {
             ? categoriaElegida
             : (categoriasTemporada[0] ?? '');
 
-    // --- Estado del logo ---
-    // archivoLogo  : lo que el usuario acaba de elegir y aún NO se ha subido
-    // logoActual   : lo que se está mostrando en la vista previa
-    // logoOriginal : lo que el equipo tenía cuando empezamos a editarlo
-    // Los últimos dos se comparan al guardar para saber si el usuario quitó
-    // el logo (había uno, ahora no hay, y tampoco eligió uno nuevo).
+    // --- Estado del logo del equipo nuevo ---
+    // archivoLogo : lo que el usuario acaba de elegir y aún NO se ha subido
+    // logoActual  : lo que se muestra en la vista previa (null = sin logo)
     const [archivoLogo, setArchivoLogo] = useState<File | null>(null);
     const [logoActual, setLogoActual] = useState<string | null>(null);
-    const [logoOriginal, setLogoOriginal] = useState<string | null>(null);
 
     const cargarEquipos = useCallback(async () => {
         setCargando(true);
@@ -92,11 +91,9 @@ export default function EquiposPanel() {
     }, [cargarEquipos]);
 
     const limpiarFormulario = () => {
-        setEditandoId(null);
         setNombre('');
         setArchivoLogo(null);
         setLogoActual(null);
-        setLogoOriginal(null);
     };
 
     const onSubmit = async (e: React.FormEvent) => {
@@ -116,35 +113,20 @@ export default function EquiposPanel() {
             if (archivoLogo) {
                 const subida = await subirImagen(archivoLogo);
                 logo = { logoUrl: subida.url, logoKey: subida.key };
-            } else if (editandoId && logoOriginal && !logoActual) {
-                // Había logo, el usuario lo quitó y no eligió otro: se manda
-                // null explícito para que el backend lo borre.
-                logo = { logoUrl: null, logoKey: null };
             }
-            // Si no entra en ningún caso, `logo` queda vacío y el backend
-            // no toca el logo existente.
 
-            // PASO 2 — Guardar el equipo con la dirección de la imagen.
-            if (editandoId) {
-                await trpcMutation<TeamResponse>('updateTeam', {
-                    id: editandoId,
-                    name: nombre.trim(),
-                    ...logo,
-                });
-                toast.success('Equipo actualizado');
-            } else {
-                if (inscribir && seasonId && !categoria) {
-                    toast.error('Esa temporada no tiene categorías. Agrégalas en /manejar-temporadas.');
-                    return;
-                }
-                const conInscripcion = inscribir && seasonId && categoria;
-                await trpcMutation<TeamResponse>('createTeam', {
-                    name: nombre.trim(),
-                    ...logo,
-                    inscripcion: conInscripcion ? { seasonId, category: categoria } : undefined,
-                });
-                toast.success(conInscripcion ? 'Equipo creado e inscrito' : 'Equipo creado');
+            // PASO 2 — Crear el equipo con la dirección de la imagen.
+            if (inscribir && seasonId && !categoria) {
+                toast.error('Esa temporada no tiene categorías. Agrégalas en /manejar-temporadas.');
+                return;
             }
+            const conInscripcion = inscribir && seasonId && categoria;
+            await trpcMutation<TeamResponse>('createTeam', {
+                name: nombre.trim(),
+                ...logo,
+                inscripcion: conInscripcion ? { seasonId, category: categoria } : undefined,
+            });
+            toast.success(conInscripcion ? 'Equipo creado e inscrito' : 'Equipo creado');
 
             limpiarFormulario();
             await cargarEquipos();
@@ -153,14 +135,6 @@ export default function EquiposPanel() {
         } finally {
             setGuardando(false);
         }
-    };
-
-    const onEditar = (equipo: Team) => {
-        setEditandoId(equipo.id);
-        setNombre(equipo.name);
-        setArchivoLogo(null);
-        setLogoActual(equipo.logoUrl);
-        setLogoOriginal(equipo.logoUrl);
     };
 
     const onEliminar = async (equipo: Team) => {
@@ -179,7 +153,6 @@ export default function EquiposPanel() {
         try {
             await trpcMutation('deleteTeam', { id: equipo.id });
             toast.success(`Equipo "${equipo.name}" eliminado`);
-            if (editandoId === equipo.id) limpiarFormulario();
             await cargarEquipos();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Error desconocido');
@@ -190,11 +163,11 @@ export default function EquiposPanel() {
 
     return (
         <div className="space-y-8">
-            {/* ---------- Formulario crear / editar ---------- */}
+            {/* ---------- Formulario de equipo nuevo ---------- */}
             {/* Tarjeta de panel con su título: el mismo formato que las
                 secciones de los demás paneles de administración. */}
             <Tarjeta variante="panel" as="section">
-                <TituloSeccion>{editandoId ? 'Editar equipo' : 'Nuevo equipo'}</TituloSeccion>
+                <TituloSeccion>Nuevo equipo</TituloSeccion>
                 <form onSubmit={onSubmit} className="space-y-5">
                     <div className={claseGrupoCampo}>
                         <label htmlFor="nombre" className={claseEtiqueta}>Nombre</label>
@@ -207,49 +180,47 @@ export default function EquiposPanel() {
                         />
                     </div>
 
-                    {/* La inscripción solo aplica al CREAR: para inscribir a un
-                        equipo existente en otra temporada está /manejar-temporadas. */}
-                    {!editandoId && (
-                        <fieldset className="space-y-4 rounded-item border border-borde p-4">
-                            <label className="flex items-center gap-2.5 text-meta text-tinta-2">
-                                <input
-                                    type="checkbox"
-                                    checked={inscribir}
-                                    onChange={(e) => setInscribir(e.target.checked)}
-                                    className={claseCasilla}
-                                />
-                                Inscribirlo de una vez en una temporada
-                            </label>
+                    {/* Para inscribir a un equipo existente en otra temporada
+                        está /manejar-temporadas. */}
+                    <fieldset className="space-y-4 rounded-item border border-borde p-4">
+                        <label className="flex items-center gap-2.5 text-meta text-tinta-2">
+                            <input
+                                type="checkbox"
+                                checked={inscribir}
+                                onChange={(e) => setInscribir(e.target.checked)}
+                                className={claseCasilla}
+                            />
+                            Inscribirlo de una vez en una temporada
+                        </label>
 
-                            {inscribir && (
-                                <div className="flex flex-wrap items-end gap-3">
-                                    <SelectorTemporada
-                                        ligas={ligas}
-                                        seasonId={seasonId}
-                                        onChange={setSeasonId}
-                                        idPrefix="nuevo"
-                                    />
-                                    <div className={claseGrupoCampo}>
-                                        <label htmlFor="categoria" className={claseEtiqueta}>Categoría</label>
-                                        <select
-                                            id="categoria"
-                                            value={categoria}
-                                            onChange={(e) => setCategoria(e.target.value as TeamCategory)}
-                                            disabled={categoriasTemporada.length === 0}
-                                            className={`${claseCampo} min-w-40`}
-                                        >
-                                            {categoriasTemporada.length === 0 && (
-                                                <option value="">Sin categorías</option>
-                                            )}
-                                            {categoriasTemporada.map((c) => (
-                                                <option key={c} value={c}>{etiquetaCategoria[c]}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                        {inscribir && (
+                            <div className="flex flex-wrap items-end gap-3">
+                                <SelectorTemporada
+                                    ligas={ligas}
+                                    seasonId={seasonId}
+                                    onChange={setSeasonId}
+                                    idPrefix="nuevo"
+                                />
+                                <div className={claseGrupoCampo}>
+                                    <label htmlFor="categoria" className={claseEtiqueta}>Categoría</label>
+                                    <select
+                                        id="categoria"
+                                        value={categoria}
+                                        onChange={(e) => setCategoria(e.target.value as TeamCategory)}
+                                        disabled={categoriasTemporada.length === 0}
+                                        className={`${claseCampo} min-w-40`}
+                                    >
+                                        {categoriasTemporada.length === 0 && (
+                                            <option value="">Sin categorías</option>
+                                        )}
+                                        {categoriasTemporada.map((c) => (
+                                            <option key={c} value={c}>{etiquetaCategoria[c]}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                            )}
-                        </fieldset>
-                    )}
+                            </div>
+                        )}
+                    </fieldset>
 
                     <SelectorImagen
                         archivo={archivoLogo}
@@ -263,24 +234,10 @@ export default function EquiposPanel() {
 
                     <div className="flex flex-wrap gap-2">
                         <Boton type="submit" disabled={guardando}>
-                            {guardando
-                                ? 'Guardando…'
-                                : editandoId
-                                  ? 'Guardar cambios'
-                                  : 'Crear equipo'}
+                            {guardando ? 'Guardando…' : 'Crear equipo'}
                         </Boton>
-
-                        {editandoId && (
-                            <Boton variante="secundario" onClick={limpiarFormulario}>
-                                Cancelar
-                            </Boton>
-                        )}
                     </div>
                 </form>
-
-                {/* Fuera del <form>: cada inscripción tiene sus propios botones
-                    y no debe enviar el formulario del equipo. */}
-                {editandoId && <InscripcionesEquipo key={editandoId} teamId={editandoId} onCambio={cargarEquipos} />}
             </Tarjeta>
 
             {/* ---------- Listado administrable ---------- */}
@@ -323,7 +280,7 @@ export default function EquiposPanel() {
                                             Plantel
                                         </Boton>
                                     )}
-                                    <Boton variante="fantasma" tamano="sm" onClick={() => onEditar(equipo)}>
+                                    <Boton variante="fantasma" tamano="sm" onClick={() => setEditando(equipo)}>
                                         Editar
                                     </Boton>
                                     {/* Un equipo con inscripciones no se borra (el backend
@@ -346,6 +303,16 @@ export default function EquiposPanel() {
                     </ul>
                 )}
             </section>
+
+            {/* Montado solo mientras está abierto: cada apertura arranca limpia. */}
+            {editando && (
+                <EditarEquipoModal
+                    key={editando.id}
+                    equipo={editando}
+                    onCerrar={() => setEditando(null)}
+                    onCambio={cargarEquipos}
+                />
+            )}
 
             {plantelDe && (
                 <PlantelModal equipo={plantelDe} onCerrar={() => setPlantelDe(null)} />

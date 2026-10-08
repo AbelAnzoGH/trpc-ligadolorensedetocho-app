@@ -58,13 +58,39 @@ export default function MarcadorModal({
         }
     };
 
-    const onGuardar = (e: React.FormEvent) => {
+    // Cambiar el marcador de un partido que YA se jugó es una corrección: se
+    // pide confirmación mostrando el antes y el después. Con uno sin jugar no
+    // hay nada que perder y no se pregunta.
+    const confirmarCambio = (nuevoLocal: number, nuevoVisitante: number, textoConfirmar: string) =>
+        confirmar({
+            titulo: 'Corregir marcador',
+            mensaje: (
+                <>
+                    ¿Estás seguro de que quieres cambiar el marcador de{' '}
+                    <strong className="text-tinta">{nombreLocal} vs {nombreVisitante}</strong>? Pasa de{' '}
+                    <strong className="text-tinta tabular-nums">{partido.homeScore} – {partido.awayScore}</strong> a{' '}
+                    <strong className="text-tinta tabular-nums">{nuevoLocal} – {nuevoVisitante}</strong>.
+                </>
+            ),
+            textoConfirmar,
+            aviso: 'La tabla de posiciones se recalcula con el nuevo marcador.',
+        });
+
+    const onGuardar = async (e: React.FormEvent) => {
         e.preventDefault();
         if (local === '' || visitante === '') {
             toast.error('Captura los dos marcadores');
             return;
         }
-        return ejecutar(
+        if (finalizado) {
+            // Mismo marcador y no era default: no hay nada que corregir.
+            if (!partido.isForfeit && Number(local) === partido.homeScore && Number(visitante) === partido.awayScore) {
+                toast('El marcador no cambió');
+                return;
+            }
+            if (!(await confirmarCambio(Number(local), Number(visitante), 'Corregir'))) return;
+        }
+        await ejecutar(
             () =>
                 trpcMutation('recordResult', {
                     id: partido.id,
@@ -75,11 +101,18 @@ export default function MarcadorModal({
         );
     };
 
-    const onDefault = (absentTeamSeasonId: string, ausente: string) =>
-        ejecutar(
+    const onDefault = async (absentTeamSeasonId: string, ausente: string) => {
+        if (finalizado) {
+            // El default pisa el marcador existente: 0 para el ausente, 36 para el otro.
+            const faltaLocal = absentTeamSeasonId === partido.homeTeamSeason.id;
+            const ok = await confirmarCambio(faltaLocal ? 0 : PUNTOS_DEFAULT, faltaLocal ? PUNTOS_DEFAULT : 0, 'Cambiar a default');
+            if (!ok) return;
+        }
+        await ejecutar(
             () => trpcMutation('recordForfeit', { id: partido.id, absentTeamSeasonId }),
             `Default: ${ausente} no se presentó`,
         );
+    };
 
     const onDeshacer = async () => {
         const ok = await confirmar({

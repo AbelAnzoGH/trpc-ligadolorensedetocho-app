@@ -177,6 +177,8 @@ export default function PartidosPanel() {
     if (error) return <MensajeError>Error: {error}</MensajeError>;
 
     const temporadaCerrada = elegida?.temporada.status === 'cerrada';
+    // Los marcadores solo se capturan / corrigen con la temporada ACTIVA.
+    const puedeCapturar = elegida?.temporada.status === 'activa';
     const categorias = elegida?.temporada.categories ?? [];
     const filtro: TeamCategory | '' = filtroElegido && categorias.includes(filtroElegido) ? filtroElegido : '';
     const visibles = filtro ? partidos.filter((p) => p.homeTeamSeason.category === filtro) : partidos;
@@ -213,6 +215,9 @@ export default function PartidosPanel() {
                 <SelectorTemporada ligas={ligas} seasonId={seasonId} onChange={setSeasonId} idPrefix="partidos" />
                 {elegida && temporadaCerrada && (
                     <Nota>Esta temporada está cerrada: sus partidos ya no se crean, editan ni capturan.</Nota>
+                )}
+                {elegida && elegida.temporada.status === 'inscripciones' && (
+                    <Nota>Esta temporada aún no está activa: puedes programar partidos, pero los marcadores se capturan cuando pase a activa.</Nota>
                 )}
             </Tarjeta>
 
@@ -289,6 +294,7 @@ export default function PartidosPanel() {
                                                 partido={p}
                                                 soloHora={grupo.diaComun !== null}
                                                 acciones={!temporadaCerrada}
+                                marcador={puedeCapturar}
                                                 guardando={guardando}
                                                 onResultado={() => setConMarcador(p)}
                                                 onEditar={() => setEditando(p)}
@@ -345,6 +351,7 @@ function FilaPartido({
     partido: p,
     soloHora,
     acciones,
+    marcador,
     guardando,
     onResultado,
     onEditar,
@@ -356,6 +363,8 @@ function FilaPartido({
     soloHora: boolean;
     /** false si la temporada está cerrada: solo se muestra. */
     acciones: boolean;
+    /** false si la temporada no está activa: no se capturan ni corrigen marcadores. */
+    marcador: boolean;
     guardando: boolean;
     onResultado: () => void;
     onEditar: () => void;
@@ -371,9 +380,11 @@ function FilaPartido({
                 // "Capturar resultado" es la acción principal de la fila, pero
                 // en secundario: un primario por fila serían diez en la pantalla.
                 <div className="flex flex-wrap gap-1.5 border-t border-borde pt-3">
-                    <Boton variante="secundario" tamano="sm" disabled={guardando} onClick={onResultado}>
-                        {finalizado ? 'Resultado' : 'Capturar resultado'}
-                    </Boton>
+                    {marcador && (
+                        <Boton variante="secundario" tamano="sm" disabled={guardando} onClick={onResultado}>
+                            {finalizado ? 'Resultado' : 'Capturar resultado'}
+                        </Boton>
+                    )}
                     {/* Un finalizado no se edita ni se borra: primero se deshace su resultado. */}
                     {!finalizado && (
                         <>

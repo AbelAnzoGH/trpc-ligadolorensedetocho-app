@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:mock": "node scripts/seed-mock.mjs",
+    "seed:mock:reset": "node scripts/seed-mock.mjs --reset"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

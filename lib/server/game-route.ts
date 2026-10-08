@@ -17,6 +17,7 @@ import {
     updateVenueHandler,
     deleteVenueHandler,
     listGamesHandler,
+    listLatestRoundsHandler,
     createGameHandler,
     updateGameHandler,
     recordResultHandler,
@@ -39,6 +40,9 @@ const gameRouter = t.router({
     listGames: publicProcedure
         .input(listGamesSchema)
         .query(({ input }) => listGamesHandler({ input })),
+
+    // La última jornada jugada de cada liga (carrusel de la portada).
+    listLatestRounds: publicProcedure.query(() => listLatestRoundsHandler()),
 
     // --- Sedes ---
     createVenue: adminProcedure

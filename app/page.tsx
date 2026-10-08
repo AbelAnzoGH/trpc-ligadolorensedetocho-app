@@ -4,6 +4,8 @@ import { createAsyncCaller } from '@/app/api/trpc/trpc-router';
 import MarqueeEquipos from '@/components/marquee-equipos';
 import SeccionPlaceholder from '@/components/seccion-placeholder';
 import CarruselPosiciones, { type DiapositivaPosiciones } from '@/components/carrusel-posiciones';
+import CarruselJornadas, { type DiapositivaJornada } from '@/components/carrusel-jornadas';
+import { agruparPorJornada, type Game } from '@/lib/game-ui';
 import { nombreTemporada } from '@/lib/season-ui';
 import { etiquetaCategoria } from '@/lib/team-ui';
 import Insignia from '@/components/ui/insignia';
@@ -40,6 +42,31 @@ export default async function Home() {
           tabla,
           conEmpates,
         }));
+      }),
+    )
+    .catch(() => []);
+
+  // La última jornada jugada de cada liga, una diapositiva por liga.
+  // createAsyncCaller llama al handler directo, así que scheduledAt llega
+  // como Date: se pasa a texto ISO para que coincida con el tipo Game que
+  // espera el navegador (igual que en la página de la temporada).
+  const jornadas: DiapositivaJornada[] = await createAsyncCaller()
+    .then((caller) => caller.listLatestRounds())
+    .then((r) =>
+      r.data.jornadas.map(({ temporada, games }) => {
+        const partidos: Game[] = games.map((g) => ({ ...g, scheduledAt: g.scheduledAt.toISOString() }));
+        // Todos los partidos son del mismo grupo (jornada o fase): agruparPorJornada
+        // devuelve uno solo y de él salen el título y el día común.
+        const [grupo] = agruparPorJornada(partidos);
+        const nombre = nombreTemporada(temporada.league, temporada.number);
+        return {
+          clave: temporada.id,
+          temporada: nombre,
+          enlace: `/ligas/${temporada.league.slug}/${temporada.number}`,
+          titulo: grupo.titulo,
+          dia: grupo.diaComun,
+          partidos,
+        };
       }),
     )
     .catch(() => []);
@@ -87,6 +114,19 @@ export default async function Home() {
         {/* ================= Cinta de logos ================= */}
         {/* Los equipos sin logo propio muestran el escudo de la liga. */}
         <MarqueeEquipos equipos={equipos} />
+
+        {/* ================= Marcadores de la última jornada ================= */}
+        {/* Sin ligas con partidos jugados, SeccionPlaceholder muestra su aviso.
+            Va sin padding abajo: la sección siguiente ya trae el suyo arriba. */}
+        <section className="mx-auto max-w-pagina px-4 pt-12 sm:px-6 sm:pt-20">
+          <SeccionPlaceholder
+            titulo="Marcadores"
+            descripcion="La última jornada jugada de cada liga."
+            aviso="Todavía no hay jornadas jugadas"
+          >
+            {jornadas.length > 0 ? <CarruselJornadas diapositivas={jornadas} /> : undefined}
+          </SeccionPlaceholder>
+        </section>
 
         {/* ================= Clasificaciones y estadísticas ================= */}
         <section className="mx-auto max-w-pagina px-4 py-12 sm:px-6 sm:py-20">

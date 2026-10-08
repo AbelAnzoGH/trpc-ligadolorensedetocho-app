@@ -77,6 +77,25 @@ const asegurarTemporadaEditable = (season: TemporadaRef) => {
     }
 };
 
+/**
+ * Los MARCADORES (capturar, corregir, default, deshacer) solo se tocan con la
+ * temporada ACTIVA (decisión de Abel). Una cerrada es historial congelado; una
+ * en inscripciones todavía no juega. Programar partidos (crear, reprogramar)
+ * sigue permitido en inscripciones: eso lo cubre asegurarTemporadaEditable.
+ * Corregir un marcador ya finalizado SÍ se puede mientras la temporada esté activa.
+ */
+const asegurarTemporadaActiva = (season: TemporadaRef) => {
+    if (season.status === 'activa') return;
+    const nombre = nombreTemporada(season.league, season.number);
+    throw new TRPCError({
+        code: 'CONFLICT',
+        message:
+            season.status === 'cerrada'
+                ? `${nombre} está cerrada: sus marcadores ya no se modifican.`
+                : `${nombre} todavía no está activa: los marcadores se capturan cuando la temporada esté activa.`,
+    });
+};
+
 /** 'regular' necesita jornada. Se revisa con los valores FINALES del partido. */
 const validarJornada = (phase: GamePhase, round: number | null) => {
     if (phase === 'regular' && round == null) {
@@ -254,6 +273,68 @@ export const listGamesHandler = async ({ input }: { input: ListGamesInput }) => 
     }
 };
 
+/**
+ * La ÚLTIMA JORNADA JUGADA de cada liga, para el carrusel "Marcadores" de la
+ * portada. Pública, como todas las lecturas.
+ *
+ * Por cada temporada ACTIVA (máximo una por liga):
+ *   1. "La última jornada jugada" es la del partido más reciente cuya fecha ya
+ *      pasó, sin importar su estado: un partido que se jugó pero aún no tiene
+ *      marcador capturado cuenta igual (decisión de Abel).
+ *   2. De ese partido se toma su GRUPO, con el mismo criterio que
+ *      agruparPorJornada (lib/game-ui.ts): su número de jornada si lo tiene;
+ *      si no (amistosos, playoffs), su fase.
+ *   3. Se devuelven TODOS los partidos del grupo, también los que todavía no
+ *      se juegan (el resto de la jornada).
+ * Las ligas sin ningún partido pasado se omiten. Orden: ligas por nombre.
+ */
+export const listLatestRoundsHandler = async () => {
+    try {
+        const ahora = new Date();
+
+        const seasons = await prisma.season.findMany({
+            where: { status: 'activa' },
+            select: {
+                id: true,
+                number: true,
+                league: { select: { id: true, name: true, slug: true } },
+            },
+            orderBy: { league: { name: 'asc' } },
+        });
+
+        // Dos consultas por liga y, como hay pocas, van en paralelo.
+        const resultado = await Promise.all(
+            seasons.map(async (temporada) => {
+                const ultimo = await prisma.game.findFirst({
+                    where: { seasonId: temporada.id, scheduledAt: { lte: ahora } },
+                    orderBy: { scheduledAt: 'desc' },
+                    select: { round: true, phase: true },
+                });
+                if (!ultimo) return null;
+
+                const games = await prisma.game.findMany({
+                    where: {
+                        seasonId: temporada.id,
+                        // `round: null` se traduce a IS NULL, así que sirve igual
+                        // para un grupo con jornada que para uno sin ella.
+                        round: ultimo.round,
+                        phase: ultimo.round === null ? ultimo.phase : undefined,
+                    },
+                    select: gameSelect,
+                    orderBy: gameOrder,
+                });
+
+                return { temporada, games };
+            }),
+        );
+
+        const jornadas = resultado.filter((j): j is NonNullable<typeof j> => j !== null);
+        return { status: 'success', results: jornadas.length, data: { jornadas } };
+    } catch (err: unknown) {
+        return toTRPCError(err);
+    }
+};
+
 /** Siempre nace 'programado' y sin marcador. */
 export const createGameHandler = async ({ input }: { input: CreateGameInput }) => {
     try {
@@ -330,13 +411,15 @@ export const updateGameHandler = async ({ input }: { input: UpdateGameInput }) =
 };
 
 /**
- * Capturar o CORREGIR el marcador. Deja el partido 'finalizado'. Si era un
- * default, deja de serlo: un marcador capturado a mano es un partido jugado.
+ * Capturar o CORREGIR el marcador (también el de un partido ya finalizado, si
+ * la temporada sigue activa). Deja el partido 'finalizado'. Si era un default,
+ * deja de serlo: un marcador capturado a mano es un partido jugado.
+ * La pantalla pide confirmación antes de corregir uno ya finalizado.
  */
 export const recordResultHandler = async ({ input }: { input: RecordResultInput }) => {
     try {
         const existing = await cargarPartido(input.id);
-        asegurarTemporadaEditable(existing.season);
+        asegurarTemporadaActiva(existing.season);
 
         const game = await prisma.game.update({
             where: { id: input.id },
@@ -358,7 +441,7 @@ export const recordResultHandler = async ({ input }: { input: RecordResultInput 
 export const recordForfeitHandler = async ({ input }: { input: RecordForfeitInput }) => {
     try {
         const existing = await cargarPartido(input.id);
-        asegurarTemporadaEditable(existing.season);
+        asegurarTemporadaActiva(existing.season);
 
         const faltaLocal = input.absentTeamSeasonId === existing.homeTeamSeasonId;
         const faltaVisitante = input.absentTeamSeasonId === existing.awayTeamSeasonId;
@@ -390,7 +473,7 @@ export const recordForfeitHandler = async ({ input }: { input: RecordForfeitInpu
 export const undoResultHandler = async ({ input }: { input: GameIdInput }) => {
     try {
         const existing = await cargarPartido(input.id);
-        asegurarTemporadaEditable(existing.season);
+        asegurarTemporadaActiva(existing.season);
 
         if (existing.status !== 'finalizado') {
             throw new TRPCError({ code: 'BAD_REQUEST', message: 'Este partido no tiene un resultado que deshacer.' });
