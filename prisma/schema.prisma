@@ -318,6 +318,14 @@ model Game {
   // México en pantalla. Reprogramar = cambiar este valor.
   scheduledAt DateTime
 
+  // false = se sabe el DÍA del partido pero todavía no la hora. En ese caso
+  // scheduledAt guarda ese día a las 00:00 de la hora de la liga (06:00 UTC)
+  // solo como valor de relleno: el día sigue ordenando y agrupando bien, y
+  // la pantalla muestra "Hora por definir" en lugar de "00:00". Nadie juega
+  // a medianoche, pero el campo es explícito para no depender de eso.
+  // Los partidos que ya existían quedan en true (tenían hora).
+  timeDefined Boolean @default(true)
+
   venueId String
   venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Restrict)
   field   Int?   // número de campo dentro de la sede (libre)

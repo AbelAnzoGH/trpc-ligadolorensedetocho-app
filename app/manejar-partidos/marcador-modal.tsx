@@ -10,7 +10,7 @@ import Boton from '@/components/ui/boton';
 import { useConfirmar } from '@/components/use-confirmar';
 import { claseCampo, claseEtiqueta, claseGrupoCampo } from '@/components/ui/campo';
 import { PUNTOS_DEFAULT } from '@/lib/game-schema';
-import { formatoFechaPartido, type Game } from '@/lib/game-ui';
+import { cuandoPartido, type Game } from '@/lib/game-ui';
 
 /**
  * Ventana para el RESULTADO de un partido. Tres acciones, tres endpoints:
@@ -137,7 +137,7 @@ export default function MarcadorModal({
             abierto
             onCerrar={onCerrar}
             titulo={`${nombreLocal} vs ${nombreVisitante}`}
-            subtitulo={`${etiquetaCategoria[partido.homeTeamSeason.category]} · ${formatoFechaPartido(partido.scheduledAt)}`}
+            subtitulo={`${etiquetaCategoria[partido.homeTeamSeason.category]} · ${cuandoPartido(partido, false)}`}
         >
             <div className="space-y-6">
                 {/* ---------- Marcador ---------- */}

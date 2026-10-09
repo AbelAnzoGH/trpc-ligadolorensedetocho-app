@@ -25,8 +25,10 @@ export type DatosPartido = {
     awayTeamSeasonId: string;
     phase: GamePhase;
     round: number | null;
-    /** Texto ISO con la zona de la liga (ver unirFechaHora). */
+    /** Texto ISO con la zona de la liga (ver unirFechaHora). Sin hora, el día a las 00:00. */
     scheduledAt: string;
+    /** false = el admin dejó la hora vacía: solo se conoce el día. */
+    timeDefined: boolean;
     venueId: string;
     field: number | null;
     notes: string | null;
@@ -73,7 +75,8 @@ export default function PartidoForm({
     const [fase, setFase] = useState<GamePhase>(inicial?.phase ?? 'regular');
     const [jornada, setJornada] = useState(inicial?.round != null ? String(inicial.round) : '');
     const [fecha, setFecha] = useState(inicial ? separarFechaHora(inicial.scheduledAt).fecha : '');
-    const [hora, setHora] = useState(inicial ? separarFechaHora(inicial.scheduledAt).hora : '');
+    // Vacía = sin hora. Un partido guardado sin hora trae 00:00 de relleno que NO se muestra.
+    const [hora, setHora] = useState(inicial?.timeDefined ? separarFechaHora(inicial.scheduledAt).hora : '');
     const [sedeElegida, setSede] = useState(inicial?.venue.id ?? '');
     const [campo, setCampo] = useState(inicial?.field != null ? String(inicial.field) : '');
     const [notas, setNotas] = useState(inicial?.notes ?? '');
@@ -119,8 +122,8 @@ export default function PartidoForm({
             toast.error('Elige al equipo local y al visitante');
             return;
         }
-        if (!fecha || !hora) {
-            toast.error('La fecha y la hora son obligatorias');
+        if (!fecha) {
+            toast.error('La fecha es obligatoria (la hora puede definirse después)');
             return;
         }
         if (!sede) {
@@ -137,7 +140,9 @@ export default function PartidoForm({
             awayTeamSeasonId: visitanteValido,
             phase: fase,
             round: jornada ? Number(jornada) : null,
-            scheduledAt: unirFechaHora(fecha, hora),
+            // Sin hora se manda el día a las 00:00 de la liga y timeDefined=false.
+            scheduledAt: unirFechaHora(fecha, hora || '00:00'),
+            timeDefined: hora !== '',
             venueId: sede,
             field: campo ? Number(campo) : null,
             notes: notas.trim() || null,
@@ -238,7 +243,9 @@ export default function PartidoForm({
                     <CampoFecha id={`${idPrefix}-fecha`} valor={fecha} onChange={setFecha} />
                 </div>
                 <div className={claseGrupoCampo}>
-                    <label htmlFor={`${idPrefix}-hora`} className={claseEtiqueta}>Hora</label>
+                    <label htmlFor={`${idPrefix}-hora`} className={claseEtiqueta}>
+                        Hora <span className="font-normal text-tenue">(opcional)</span>
+                    </label>
                     <CampoHora id={`${idPrefix}-hora`} valor={hora} onChange={setHora} />
                 </div>
             </div>

@@ -5,8 +5,7 @@ import {
     etiquetaEstadoPartido,
     tonoEstadoPartido,
     tonoDefault,
-    formatoFechaPartido,
-    formatoHoraPartido,
+    cuandoPartido,
     type Game,
 } from '@/lib/game-ui';
 
@@ -49,7 +48,7 @@ export default function PartidoCompacto({
     const claseMarcador = (propio: number | null, rival: number | null) =>
         !jugado ? 'text-apagado' : propio! >= rival! ? 'text-tinta' : 'text-tenue';
 
-    const cuando = soloHora ? formatoHoraPartido(p.scheduledAt) : formatoFechaPartido(p.scheduledAt);
+    const cuando = cuandoPartido(p, soloHora);
 
     return (
         <li>

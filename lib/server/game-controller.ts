@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { prisma } from '@/lib/prisma';
 import { etiquetaCategoria } from '@/lib/team-ui';
 import { nombreTemporada } from '@/lib/season-ui';
+import { ordenarPartidos } from '@/lib/game-ui';
 import { toTRPCError } from '@/lib/server/reglas-inscripcion';
 import { PUNTOS_DEFAULT, type GamePhase } from '@/lib/game-schema';
 import type {
@@ -42,6 +43,7 @@ const gameSelect = {
     round: true,
     status: true,
     scheduledAt: true,
+    timeDefined: true,
     field: true,
     homeScore: true,
     awayScore: true,
@@ -52,7 +54,9 @@ const gameSelect = {
     awayTeamSeason: { select: ladoSelect },
 } as const;
 
-// Orden del rol: por fecha y hora; a la misma hora, por campo.
+// Orden en la base: por fecha y hora; a la misma hora, por campo. Los partidos
+// SIN hora (relleno 00:00) quedarían primero de su día, así que después de
+// consultar se reacomodan con ordenarPartidos (lib/game-ui.ts).
 const gameOrder = [{ scheduledAt: 'asc' as const }, { field: 'asc' as const }];
 
 // ---------------------------------------------------------------------------
@@ -267,7 +271,7 @@ export const listGamesHandler = async ({ input }: { input: ListGamesInput }) => 
             orderBy: gameOrder,
         });
 
-        return { status: 'success', results: games.length, data: { games } };
+        return { status: 'success', results: games.length, data: { games: ordenarPartidos(games) } };
     } catch (err: unknown) {
         return toTRPCError(err);
     }
@@ -324,7 +328,7 @@ export const listLatestRoundsHandler = async () => {
                     orderBy: gameOrder,
                 });
 
-                return { temporada, games };
+                return { temporada, games: ordenarPartidos(games) };
             }),
         );
 
@@ -354,6 +358,7 @@ export const createGameHandler = async ({ input }: { input: CreateGameInput }) =
                 phase: input.phase,
                 round: input.round ?? null,
                 scheduledAt: input.scheduledAt,
+                timeDefined: input.timeDefined,
                 venueId: input.venueId,
                 field: input.field ?? null,
                 notes: input.notes ?? null,

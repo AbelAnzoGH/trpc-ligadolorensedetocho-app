@@ -15,6 +15,10 @@ import { separarFechaHora } from '@/lib/game-ui';
  * ("2026-10-04" y "10:00", o '' si no hay) y avisan con onChange. Si el admin
  * toca una sola parte y las otras están vacías, se rellenan con un valor
  * razonable (hoy, o minuto 00) para que el valor siempre quede completo.
+ *
+ * La HORA es opcional: la opción "Sin hora" del primer select la deja vacía
+ * (onChange('')), también para quitarla después de haberla puesto. Mientras
+ * esté vacía, el select de minutos se deshabilita.
  */
 
 const MESES = [
@@ -123,10 +127,10 @@ export function CampoHora({
                 id={id}
                 aria-label="Hora"
                 value={vacio ? '' : h}
-                onChange={(e) => onChange(`${e.target.value}:${min}`)}
+                onChange={(e) => onChange(e.target.value === '' ? '' : `${e.target.value}:${min}`)}
                 className={select}
             >
-                {vacio && <option value="">Hora</option>}
+                <option value="">Sin hora</option>
                 {Array.from({ length: 24 }, (_, i) => dos(i)).map((n) => (
                     <option key={n} value={n}>{n}</option>
                 ))}
@@ -136,9 +140,10 @@ export function CampoHora({
                 aria-label="Minutos"
                 value={vacio ? '' : min}
                 onChange={(e) => onChange(`${h}:${e.target.value}`)}
+                disabled={vacio}
                 className={select}
             >
-                {vacio && <option value="">Min</option>}
+                {vacio && <option value="">–</option>}
                 {minutos.map((n) => (
                     <option key={n} value={n}>{n}</option>
                 ))}

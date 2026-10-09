@@ -7,8 +7,7 @@ import {
     etiquetaEstadoPartido,
     tonoEstadoPartido,
     tonoDefault,
-    formatoFechaPartido,
-    formatoHoraPartido,
+    cuandoPartido,
     type Game,
     type LadoPartido,
 } from '@/lib/game-ui';
@@ -46,7 +45,7 @@ export default function PartidoTarjeta({
         <li className="space-y-3 rounded-item border border-borde bg-superficie px-4 py-3">
             <div className="flex flex-wrap items-center gap-2 text-meta text-tenue">
                 <span className="font-medium text-tinta-2">
-                    {soloHora ? formatoHoraPartido(p.scheduledAt) : formatoFechaPartido(p.scheduledAt)}
+                    {cuandoPartido(p, soloHora)}
                 </span>
                 <span>· {p.venue.name}{p.field != null ? `, campo ${p.field}` : ''}</span>
                 <Insignia>{etiquetaCategoria[p.homeTeamSeason.category]}</Insignia>

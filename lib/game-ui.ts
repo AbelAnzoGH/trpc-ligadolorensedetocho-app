@@ -75,6 +75,16 @@ export const formatoFechaPartido = (fecha: string | Date) =>
         hourCycle: 'h23',
     }).format(new Date(fecha));
 
+/** "sáb, 4 oct 2026" — el día sin la hora, para un partido que todavía no la tiene. */
+const formatoFechaSinHora = (fecha: string | Date) =>
+    new Intl.DateTimeFormat('es-MX', {
+        timeZone: ZONA_LIGA,
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    }).format(new Date(fecha));
+
 /** "sábado 4 de octubre de 2026" — para el encabezado de una jornada. */
 export const formatoDiaPartido = (fecha: string | Date) =>
     new Intl.DateTimeFormat('es-MX', {
@@ -124,6 +134,40 @@ export const unirFechaHora = (fecha: string, hora: string) => `${fecha}T${hora}:
 /** Solo el día ("2026-10-04") en hora de la liga: sirve para comparar días. */
 export const diaDeLiga = (valor: string | Date) => separarFechaHora(valor).fecha;
 
+export const TEXTO_SIN_HORA = 'Hora por definir';
+
+/**
+ * Cuándo se juega un partido, en una línea, respetando que la hora puede no
+ * estar definida:
+ *   con hora, soloHora=false → "sáb, 4 oct 2026, 10:00"
+ *   con hora, soloHora=true  → "10:00"
+ *   sin hora, soloHora=false → "sáb, 4 oct 2026 · Hora por definir"
+ *   sin hora, soloHora=true  → "Hora por definir"
+ * Úsala en lugar de formatoFechaPartido / formatoHoraPartido a secas: esas
+ * dos pintarían el "00:00" de relleno como si fuera una hora real.
+ */
+export const cuandoPartido = (p: Pick<Game, 'scheduledAt' | 'timeDefined'>, soloHora: boolean) => {
+    if (p.timeDefined) return soloHora ? formatoHoraPartido(p.scheduledAt) : formatoFechaPartido(p.scheduledAt);
+    return soloHora ? TEXTO_SIN_HORA : `${formatoFechaSinHora(p.scheduledAt)} · ${TEXTO_SIN_HORA}`;
+};
+
+/**
+ * Orden del rol: por día; dentro del día, primero los que tienen hora (por
+ * hora y luego por campo) y al final los que no la tienen (por campo). Sin
+ * esto, el relleno 00:00 pondría a los partidos sin hora al principio de su día.
+ * Es estable y no modifica la lista que recibe.
+ */
+export const ordenarPartidos = <T extends { scheduledAt: string | Date; timeDefined: boolean; field: number | null }>(
+    partidos: T[],
+): T[] =>
+    [...partidos].sort(
+        (a, b) =>
+            diaDeLiga(a.scheduledAt).localeCompare(diaDeLiga(b.scheduledAt)) ||
+            Number(!a.timeDefined) - Number(!b.timeDefined) ||
+            new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime() ||
+            (a.field ?? 0) - (b.field ?? 0),
+    );
+
 // ---------------------------------------------------------------------------
 // TIPOS DE RESPUESTA
 // ---------------------------------------------------------------------------
@@ -153,6 +197,8 @@ export type Game = {
     status: GameStatus;
     /** Texto ISO en UTC (trpc-fetch no convierte fechas). Usa formatoFechaPartido. */
     scheduledAt: string;
+    /** false = solo se conoce el día; la hora de `scheduledAt` es relleno (00:00). Usa cuandoPartido. */
+    timeDefined: boolean;
     field: number | null;
     homeScore: number | null;
     awayScore: number | null;

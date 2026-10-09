@@ -11,6 +11,7 @@ import {
     tonoEstadoPartido,
     formatoDiaPartido,
     formatoHoraPartido,
+    TEXTO_SIN_HORA,
     type Game,
 } from '@/lib/game-ui';
 
@@ -38,7 +39,7 @@ export default function PartidoDetalleModal({
 
     const filas: [string, string][] = [
         ['Fecha', formatoDiaPartido(p.scheduledAt)],
-        ['Hora', formatoHoraPartido(p.scheduledAt)],
+        ['Hora', p.timeDefined ? formatoHoraPartido(p.scheduledAt) : TEXTO_SIN_HORA],
         ['Sede', p.venue.name],
     ];
     if (p.venue.address) filas.push(['Dirección', p.venue.address]);

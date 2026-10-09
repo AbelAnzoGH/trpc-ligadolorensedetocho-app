@@ -117,6 +117,9 @@ export const createGameSchema = z
         phase: gamePhaseSchema.default("regular"),
         round: jornadaSchema.nullable().optional(),
         scheduledAt: fechaHoraSchema,
+        // false = solo se conoce el día. El cliente manda entonces el día a las
+        // 00:00 de la liga en scheduledAt (ver unirFechaHora / game-ui.ts).
+        timeDefined: z.boolean({ error: "timeDefined debe ser verdadero o falso" }).default(true),
         venueId: idSchema("de la sede"),
         field: campoSchema.nullable().optional(),
         notes: notasSchema.nullable().optional(),
@@ -145,6 +148,8 @@ export const updateGameSchema = z.object({
     phase: gamePhaseSchema.optional(),
     round: jornadaSchema.nullable().optional(),
     scheduledAt: fechaHoraSchema.optional(),
+    // Para ponerle hora a un partido que no la tenía, o quitársela otra vez.
+    timeDefined: z.boolean({ error: "timeDefined debe ser verdadero o falso" }).optional(),
     venueId: idSchema("de la sede").optional(),
     field: campoSchema.nullable().optional(),
     notes: notasSchema.nullable().optional(),

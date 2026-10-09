@@ -186,6 +186,11 @@ const construirPlan = () => {
                         fecha.setUTCHours(15, 0, 0, 0);
                         fecha.setTime(fecha.getTime() + (i * 90 + c * 30) * 60_000);
 
+                        // El último partido de cada jornada FUTURA queda sin hora (solo se
+                        // sabe el día): 00:00 de la liga = 06:00 UTC como relleno.
+                        const sinHora = numero > jugadas && i === juegos.length - 1;
+                        if (sinHora) fecha.setUTCHours(6, 0, 0, 0);
+
                         const pasada = numero <= jugadas;
                         const esUltima = numero === jugadas;
                         // En la jornada más reciente, la mitad queda sin capturar (o todos, si `todosPendientes`).
@@ -214,6 +219,7 @@ const construirPlan = () => {
                             round: numero,
                             status: finalizado ? 'finalizado' : 'programado',
                             scheduledAt: fecha,
+                            timeDefined: !sinHora,
                             sede: sedeIdx(c + i),
                             field: (i % 3) + 1,
                             homeScore, awayScore, isForfeit,
@@ -417,6 +423,7 @@ try {
                     round: p.round,
                     status: p.status,
                     scheduledAt: p.scheduledAt,
+                    timeDefined: p.timeDefined ?? true,
                     venueId: sedes[p.sede].id,
                     field: p.field,
                     homeScore: p.homeScore,
